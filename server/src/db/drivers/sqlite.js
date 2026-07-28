@@ -3,21 +3,23 @@ import { dirname } from 'node:path';
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS comics (
-  id         TEXT PRIMARY KEY,
-  series     TEXT NOT NULL,
-  issue      TEXT NOT NULL DEFAULT '1',
-  issue_sort REAL NOT NULL DEFAULT 0,
-  publisher  TEXT NOT NULL DEFAULT 'Independent',
-  year       INTEGER NOT NULL,
-  genre      TEXT NOT NULL DEFAULT 'Indie',
-  grade      REAL NOT NULL DEFAULT 9.0,
-  price      REAL NOT NULL DEFAULT 0,
-  key_note   TEXT NOT NULL DEFAULT '',
-  creators   TEXT NOT NULL DEFAULT '',
-  image      TEXT NOT NULL DEFAULT '',
-  added      INTEGER NOT NULL,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
+  id             TEXT PRIMARY KEY,
+  series         TEXT NOT NULL,
+  issue          TEXT NOT NULL DEFAULT '1',
+  issue_sort     REAL NOT NULL DEFAULT 0,
+  publisher      TEXT NOT NULL DEFAULT 'Independent',
+  character_name TEXT NOT NULL DEFAULT '',
+  variant        TEXT NOT NULL DEFAULT '',
+  year           INTEGER NOT NULL DEFAULT 0,
+  genre          TEXT NOT NULL DEFAULT 'Indie',
+  grade          REAL NOT NULL DEFAULT 0,
+  price          REAL NOT NULL DEFAULT 0,
+  key_note       TEXT NOT NULL DEFAULT '',
+  creators       TEXT NOT NULL DEFAULT '',
+  image          TEXT NOT NULL DEFAULT '',
+  added          INTEGER NOT NULL,
+  created_at     TEXT NOT NULL,
+  updated_at     TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_comics_publisher ON comics(publisher);
 CREATE INDEX IF NOT EXISTS idx_comics_year      ON comics(year);
@@ -52,6 +54,16 @@ export async function createSqliteDriver(dbPath) {
     },
     async migrate() {
       db.exec(SCHEMA);
+      // Databases created before the character/variant columns existed
+      const cols = new Set(
+        db.prepare('PRAGMA table_info(comics)').all().map((c) => c.name)
+      );
+      if (!cols.has('character_name')) {
+        db.exec("ALTER TABLE comics ADD COLUMN character_name TEXT NOT NULL DEFAULT ''");
+      }
+      if (!cols.has('variant')) {
+        db.exec("ALTER TABLE comics ADD COLUMN variant TEXT NOT NULL DEFAULT ''");
+      }
     },
     async transaction(fn) {
       db.exec('BEGIN');

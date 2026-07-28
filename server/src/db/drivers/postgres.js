@@ -2,22 +2,26 @@ import pg from 'pg';
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS comics (
-  id         TEXT PRIMARY KEY,
-  series     TEXT NOT NULL,
-  issue      TEXT NOT NULL DEFAULT '1',
-  issue_sort DOUBLE PRECISION NOT NULL DEFAULT 0,
-  publisher  TEXT NOT NULL DEFAULT 'Independent',
-  year       INTEGER NOT NULL,
-  genre      TEXT NOT NULL DEFAULT 'Indie',
-  grade      DOUBLE PRECISION NOT NULL DEFAULT 9.0,
-  price      DOUBLE PRECISION NOT NULL DEFAULT 0,
-  key_note   TEXT NOT NULL DEFAULT '',
-  creators   TEXT NOT NULL DEFAULT '',
-  image      TEXT NOT NULL DEFAULT '',
-  added      DOUBLE PRECISION NOT NULL,
-  created_at TEXT NOT NULL,
-  updated_at TEXT NOT NULL
+  id             TEXT PRIMARY KEY,
+  series         TEXT NOT NULL,
+  issue          TEXT NOT NULL DEFAULT '1',
+  issue_sort     DOUBLE PRECISION NOT NULL DEFAULT 0,
+  publisher      TEXT NOT NULL DEFAULT 'Independent',
+  character_name TEXT NOT NULL DEFAULT '',
+  variant        TEXT NOT NULL DEFAULT '',
+  year           INTEGER NOT NULL DEFAULT 0,
+  genre          TEXT NOT NULL DEFAULT 'Indie',
+  grade          DOUBLE PRECISION NOT NULL DEFAULT 0,
+  price          DOUBLE PRECISION NOT NULL DEFAULT 0,
+  key_note       TEXT NOT NULL DEFAULT '',
+  creators       TEXT NOT NULL DEFAULT '',
+  image          TEXT NOT NULL DEFAULT '',
+  added          DOUBLE PRECISION NOT NULL,
+  created_at     TEXT NOT NULL,
+  updated_at     TEXT NOT NULL
 );
+ALTER TABLE comics ADD COLUMN IF NOT EXISTS character_name TEXT NOT NULL DEFAULT '';
+ALTER TABLE comics ADD COLUMN IF NOT EXISTS variant TEXT NOT NULL DEFAULT '';
 CREATE INDEX IF NOT EXISTS idx_comics_publisher ON comics(publisher);
 CREATE INDEX IF NOT EXISTS idx_comics_year      ON comics(year);
 CREATE INDEX IF NOT EXISTS idx_comics_genre     ON comics(genre);

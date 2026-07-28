@@ -18,10 +18,12 @@ uploads, seed reset) requires the header `x-api-key: <key>`. Reads are always pu
   "issue": "1",
   "title": "The Sandman #1",
   "publisher": "Vertigo",
-  "year": 1989,
-  "era": "Modern Age",           // derived: <1956 Golden, <1971 Silver, <1986 Bronze, <2000 Modern, else Contemporary
+  "character": "Morpheus",       // primary character ("" when unrecorded)
+  "variant": "",                 // cover variant, e.g. "Cover B"
+  "year": 1989,                  // 0 = unknown (renders as "—", belongs to no era)
+  "era": "Modern Age",           // derived: <1956 Golden, <1971 Silver, <1986 Bronze, <2000 Modern, else Contemporary; null when year is 0
   "genre": "Fantasy",
-  "grade": 9.4,
+  "grade": 9.4,                  // 0 = ungraded (grade chips and census hide)
   "price": 480,
   "keyNote": "First appearance of Morpheus",
   "isKey": true,                 // keyNote non-empty
@@ -44,7 +46,7 @@ table (use `sort=added-desc` + pagination there).
 
 | Param | Type | Notes |
 | --- | --- | --- |
-| `q` | string | live search; **AND-matches every whitespace-separated term** against series, `#issue`, publisher, genre, creators, key note and year |
+| `q` | string | live search; **AND-matches every whitespace-separated term** against series, `#issue`, publisher, character, variant, genre, creators, key note and year |
 | `publisher` | string, repeatable | multi-select within the group |
 | `era` | string, repeatable | one of the five eras |
 | `genre` | string, repeatable | one of the eight genres |
@@ -103,13 +105,14 @@ The slide-over detail. Returns the record plus:
 
 ## `POST /api/comics` — accession a book *(write)*
 
-Body: any subset of `series, issue, publisher, year, genre, grade, price, keyNote,
-creators, image`.
+Body: any subset of `series, issue, publisher, character, variant, year, genre, grade,
+price, keyNote, creators, image`.
 
 - `series` is **required** → `400 { "error": "Series is required" }` (the CMS flash).
-- Handoff defaults applied to blank fields: issue `"1"`, publisher `"Independent"`,
-  year = current year, genre `"Indie"` (unknown genres also fall back), grade `9.0`
-  (clamped 0.5–10), price `0` (clamped ≥ 0).
+- Defaults applied to blank fields: issue `"1"`, publisher `"Independent"`, genre
+  `"Indie"` (unknown genres also fall back), price `0` (clamped ≥ 0). Blank **year**
+  becomes `0` (unknown) and blank **grade** becomes `0` (ungraded) — real inventories
+  often lack these, and the UI renders "—" rather than fabricating values.
 - `image` must be `http(s)://…` or an `/uploads/…` path. **Data URLs are rejected** —
   upload the file instead.
 
@@ -182,10 +185,23 @@ Option lists and chrome feed:
 }
 ```
 
+## `POST /api/admin/import` *(write)*
+
+Bulk import. Body `{ "records": [ …up to 5000 record objects… ], "replaceAll": bool }`.
+One transaction: with `replaceAll`, the existing catalog is wiped first; a failure
+anywhere rolls everything back. Rows failing validation are skipped and reported.
+Returns `201 { imported, skipped: [{index, error}], total, replaceAll }`.
+
+Companion script: `node scripts/import-comic-list.mjs <file.xlsx> --target <url>
+--key <ADMIN_API_KEY> --replace` parses the Williams Collection workbook format
+(`Company | Character | Title | Issue | Cover [| Artist]`, one sheet per publisher).
+
 ## `POST /api/admin/seed-reset` *(write)*
 
-The CMS "Restore seed data" action — atomically replaces the catalog with the 30
-handoff records. Returns `{ ok: true, …stats }`.
+Dev/testing endpoint — atomically replaces the catalog with the 30 demo records from
+the design handoff. Returns `{ ok: true, …stats }`. **The CMS button for this was
+removed once real inventory replaced the demo seed; don't call it in production
+unless you mean to erase the live catalog.**
 
 ## `GET /api/health`
 

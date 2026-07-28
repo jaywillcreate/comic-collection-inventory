@@ -1,5 +1,10 @@
 import { randomUUID } from 'node:crypto';
-import { INSERT_SQL, insertParams } from '../db/connection.js';
+import {
+  INSERT_COLUMNS,
+  INSERT_PLACEHOLDERS,
+  INSERT_SQL,
+  insertParams,
+} from '../db/connection.js';
 import {
   DEFAULT_SORT,
   ERA_RANGES,
@@ -18,11 +23,12 @@ import {
  * Dialect-neutral: works on both SQLite and Postgres.
  */
 const HAYSTACK =
-  "lower(series || ' #' || issue || ' ' || publisher || ' ' || genre || ' ' || creators || ' ' || key_note || ' ' || CAST(year AS TEXT))";
+  "lower(series || ' #' || issue || ' ' || publisher || ' ' || character_name || ' ' || variant || ' ' || genre || ' ' || creators || ' ' || key_note || ' ' || CAST(year AS TEXT))";
 
+// Unknown years (0) sort to the end of both year orders.
 const ORDER_BY = {
-  'year-asc': 'year ASC, added DESC',
-  'year-desc': 'year DESC, added DESC',
+  'year-asc': 'CASE WHEN year = 0 THEN 1 ELSE 0 END, year ASC, added DESC',
+  'year-desc': 'CASE WHEN year = 0 THEN 1 ELSE 0 END, year DESC, added DESC',
   'value-desc': 'price DESC, added DESC',
   'grade-desc': 'grade DESC, added DESC',
   'title-asc': 'lower(series) ASC, issue_sort ASC, issue ASC',
@@ -43,8 +49,10 @@ export function serialize(row) {
     issue: row.issue,
     title: `${row.series} #${row.issue}`,
     publisher: row.publisher,
+    character: row.character_name,
+    variant: row.variant,
     year: Number(row.year),
-    era: eraFor(Number(row.year)),
+    era: Number(row.year) > 0 ? eraFor(Number(row.year)) : null,
     genre: row.genre,
     grade: Number(row.grade),
     price: Number(row.price),
@@ -114,9 +122,10 @@ export class ComicsService {
       params.push(...f.publisher);
     }
     if (skipGroup !== 'era' && f.era.length) {
+      // year 0 = unknown and belongs to no era
       const ors = f.era.map((era) => {
         const { min, max } = ERA_RANGES[era];
-        if (min == null) return `year <= ${max}`;
+        if (min == null) return `(year > 0 AND year <= ${max})`;
         if (max == null) return `year >= ${min}`;
         return `(year BETWEEN ${min} AND ${max})`;
       });
@@ -192,6 +201,7 @@ export class ComicsService {
     };
 
     const eraExpr = `CASE
+      WHEN year <= 0 THEN NULL
       WHEN year < 1956 THEN 'Golden Age'
       WHEN year < 1971 THEN 'Silver Age'
       WHEN year < 1986 THEN 'Bronze Age'
@@ -266,6 +276,8 @@ export class ComicsService {
       series: 'series',
       issue: 'issue',
       publisher: 'publisher',
+      character: 'character_name',
+      variant: 'variant',
       year: 'year',
       genre: 'genre',
       grade: 'grade',
@@ -303,6 +315,62 @@ export class ComicsService {
   }
 
   /**
+   * Bulk import — one transaction, chunked multi-row inserts. With
+   * `replaceAll`, the existing catalog (e.g. the demo seed) is wiped first;
+   * a failure anywhere rolls the whole import back. Invalid rows are skipped
+   * and reported, never silently dropped.
+   */
+  async importMany(records, { replaceAll = false } = {}) {
+    if (!Array.isArray(records) || records.length === 0) {
+      const err = new Error('Body must be { records: [...] } with at least one record');
+      err.status = 400;
+      throw err;
+    }
+    if (records.length > 5000) {
+      const err = new Error('At most 5000 records per import');
+      err.status = 400;
+      throw err;
+    }
+
+    const base = Date.now();
+    const prepared = [];
+    const skipped = [];
+    records.forEach((body, index) => {
+      try {
+        const rec = this.coerce(body, { applyDefaults: true });
+        if (!rec.series) throw new Error('Series is required');
+        rec.id = 'u' + randomUUID();
+        rec.added = base + index;
+        prepared.push(rec);
+      } catch (e) {
+        skipped.push({ index, error: e.message });
+      }
+    });
+    if (!prepared.length) {
+      const err = new Error('No valid records in import');
+      err.status = 400;
+      throw err;
+    }
+
+    const CHUNK = 200;
+    await this.db.transaction(async (tx) => {
+      if (replaceAll) await tx.run('DELETE FROM comics');
+      for (let i = 0; i < prepared.length; i += CHUNK) {
+        const chunk = prepared.slice(i, i + CHUNK);
+        await tx.run(
+          `INSERT INTO comics ${INSERT_COLUMNS} VALUES ${chunk
+            .map(() => INSERT_PLACEHOLDERS)
+            .join(', ')}`,
+          chunk.flatMap(insertParams)
+        );
+      }
+    });
+
+    const { n } = await this.db.get('SELECT COUNT(*) AS n FROM comics');
+    return { imported: prepared.length, skipped, total: Number(n), replaceAll };
+  }
+
+  /**
    * Coerce/sanitize input. With applyDefaults (create), absent or blank fields
    * take the design's accession defaults; without (patch), only supplied keys
    * are returned.
@@ -324,20 +392,22 @@ export class ComicsService {
     if (has('publisher') || applyDefaults) {
       out.publisher = str(body.publisher).slice(0, 120) || 'Independent';
     }
+    if (has('character') || applyDefaults) out.character = str(body.character).slice(0, 120);
+    if (has('variant') || applyDefaults) out.variant = str(body.variant).slice(0, 80);
     if (has('year') || applyDefaults) {
+      // 0 = unknown year (blank field); shows as "—" and belongs to no era
       const y = parseInt(body.year, 10);
-      out.year =
-        Number.isFinite(y) && y >= 1800 && y <= 2100
-          ? y
-          : new Date().getFullYear();
+      out.year = Number.isFinite(y) && y >= 1800 && y <= 2100 ? y : 0;
     }
     if (has('genre') || applyDefaults) {
       const g = str(body.genre);
       out.genre = GENRES.includes(g) ? g : 'Indie';
     }
     if (has('grade') || applyDefaults) {
+      // 0 = ungraded (blank field); grade chips and census hide
       const g = parseFloat(body.grade);
-      out.grade = Number.isFinite(g) ? Math.min(10, Math.max(0.5, g)) : 9.0;
+      out.grade =
+        Number.isFinite(g) && g > 0 ? Math.min(10, Math.max(0.5, g)) : 0;
     }
     if (has('price') || applyDefaults) {
       const p = parseFloat(body.price);

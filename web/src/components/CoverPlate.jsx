@@ -64,7 +64,7 @@ export default function CoverPlate({ rec, radius = 8, overlays = true, plate = t
                   {rec.publisher}
                 </span>
                 <span style={{ fontSize: 8, letterSpacing: '0.14em', opacity: 0.55 }}>
-                  {rec.year}
+                  {rec.year > 0 ? rec.year : ''}
                 </span>
               </div>
               <div
@@ -167,23 +167,25 @@ export default function CoverPlate({ rec, radius = 8, overlays = true, plate = t
               pointerEvents: 'none',
             }}
           />
-          <div
-            style={{
-              position: 'absolute',
-              right: 8,
-              bottom: 8,
-              whiteSpace: 'nowrap',
-              fontSize: 10,
-              fontVariantNumeric: 'tabular-nums',
-              letterSpacing: '0.06em',
-              color: 'var(--color-accent-200)',
-              background: 'color-mix(in srgb,#161826 62%,transparent)',
-              padding: '1px 6px',
-              borderRadius: 4,
-            }}
-          >
-            CGC {Number(rec.grade).toFixed(1)}
-          </div>
+          {rec.grade > 0 && (
+            <div
+              style={{
+                position: 'absolute',
+                right: 8,
+                bottom: 8,
+                whiteSpace: 'nowrap',
+                fontSize: 10,
+                fontVariantNumeric: 'tabular-nums',
+                letterSpacing: '0.06em',
+                color: 'var(--color-accent-200)',
+                background: 'color-mix(in srgb,#161826 62%,transparent)',
+                padding: '1px 6px',
+                borderRadius: 4,
+              }}
+            >
+              CGC {Number(rec.grade).toFixed(1)}
+            </div>
+          )}
         </>
       )}
     </div>

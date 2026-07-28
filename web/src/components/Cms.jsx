@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   Archive,
-  ArrowCounterClockwise,
   ArrowUDownLeft,
   Bank,
   Books,
@@ -58,7 +57,6 @@ export default function Cms({
   flash,
   onSubmit,
   onCancelEdit,
-  onResetData,
   inventory,
   adminQ,
   setAdminQ,
@@ -177,10 +175,6 @@ export default function Cms({
             public wall immediately.
           </p>
         </div>
-        <button className="btn btn-secondary" onClick={onResetData}>
-          <ArrowCounterClockwise size={14} />
-          Restore seed data
-        </button>
       </div>
 
       {/* Stat cards */}
@@ -344,6 +338,29 @@ export default function Cms({
                   </option>
                 ))}
               </select>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <div className="field" style={{ flex: '1 1 140px' }}>
+              <label>Character</label>
+              <input
+                className="input"
+                value={form.character}
+                onChange={(e) => setField('character', e.target.value)}
+                placeholder="Spider-man"
+              />
+            </div>
+            <div className="field" style={{ flex: '1 1 120px' }}>
+              <label>
+                Cover variant <span className="text-muted">— optional</span>
+              </label>
+              <input
+                className="input"
+                value={form.variant}
+                onChange={(e) => setField('variant', e.target.value)}
+                placeholder="Cover B"
+              />
             </div>
           </div>
 
@@ -715,16 +732,21 @@ export default function Cms({
                       <CoverSwatch rec={r} width={24} height={34} />
                     </td>
                     <td>
-                      <div style={{ fontWeight: 500 }}>{r.title}</div>
+                      <div style={{ fontWeight: 500 }}>
+                        {r.title}
+                        {r.variant ? ` · ${r.variant}` : ''}
+                      </div>
                       <div style={{ fontSize: 11, color: muted(45) }}>
-                        {r.keyNote || r.creators}
+                        {r.keyNote || r.character || r.creators}
                       </div>
                     </td>
                     <td className="text-muted">{r.publisher}</td>
                     <td className="text-muted" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                      {r.year}
+                      {r.year > 0 ? r.year : '—'}
                     </td>
-                    <td style={{ fontVariantNumeric: 'tabular-nums' }}>{r.grade}</td>
+                    <td style={{ fontVariantNumeric: 'tabular-nums' }}>
+                      {r.grade > 0 ? r.grade : '—'}
+                    </td>
                     <td
                       style={{
                         textAlign: 'right',

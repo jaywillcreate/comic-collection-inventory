@@ -7,13 +7,15 @@ export default function DetailPanel({ sel, onClose, onEdit }) {
   if (!sel) return null;
 
   const specs = [
-    { label: 'Cover date', value: sel.year },
+    { label: 'Cover date', value: sel.year > 0 ? sel.year : '—' },
     { label: 'Issue', value: '#' + sel.issue },
-    { label: 'Grade', value: 'CGC ' + Number(sel.grade).toFixed(1) },
+    { label: 'Grade', value: sel.grade > 0 ? 'CGC ' + Number(sel.grade).toFixed(1) : 'Ungraded' },
     { label: 'Market value', value: money(sel.price) },
-    { label: 'Era', value: sel.era },
+    { label: 'Era', value: sel.era || '—' },
     { label: 'Genre', value: sel.genre },
   ];
+  if (sel.character) specs.splice(2, 0, { label: 'Character', value: sel.character });
+  if (sel.variant) specs.push({ label: 'Variant', value: sel.variant });
 
   return (
     <>
@@ -113,7 +115,8 @@ export default function DetailPanel({ sel, onClose, onEdit }) {
                   color: 'var(--color-accent)',
                 }}
               >
-                {sel.publisher} · {sel.era}
+                {sel.publisher}
+                {sel.era ? ` · ${sel.era}` : ''}
               </div>
               <h3
                 style={{
@@ -135,9 +138,16 @@ export default function DetailPanel({ sel, onClose, onEdit }) {
                 <span className="tag tag-neutral" style={{ whiteSpace: 'nowrap' }}>
                   {sel.genre}
                 </span>
-                <span className="tag tag-accent" style={{ whiteSpace: 'nowrap' }}>
-                  CGC {Number(sel.grade).toFixed(1)}
-                </span>
+                {sel.grade > 0 && (
+                  <span className="tag tag-accent" style={{ whiteSpace: 'nowrap' }}>
+                    CGC {Number(sel.grade).toFixed(1)}
+                  </span>
+                )}
+                {sel.variant && (
+                  <span className="tag tag-neutral" style={{ whiteSpace: 'nowrap' }}>
+                    {sel.variant}
+                  </span>
+                )}
                 {sel.isKey && <span className="tag tag-outline">Key</span>}
               </div>
             </div>
@@ -195,7 +205,7 @@ export default function DetailPanel({ sel, onClose, onEdit }) {
             ))}
           </div>
 
-          {sel.census && (
+          {sel.census && sel.grade > 0 && (
             <div>
               <div
                 style={{

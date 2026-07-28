@@ -468,18 +468,22 @@ export default function Catalog({
                       {c.title}
                     </div>
                     <div style={{ fontSize: 11, color: muted(48) }}>
-                      {c.publisher} · {c.year}
+                      {c.publisher}
+                      {c.year > 0 ? ` · ${c.year}` : ''}
+                      {c.character ? ` · ${c.character}` : ''}
                     </div>
-                    <div
-                      style={{
-                        fontSize: 12,
-                        color: 'var(--color-accent-300)',
-                        fontVariantNumeric: 'tabular-nums',
-                        marginTop: 1,
-                      }}
-                    >
-                      {money(c.price)}
-                    </div>
+                    {c.price > 0 && (
+                      <div
+                        style={{
+                          fontSize: 12,
+                          color: 'var(--color-accent-300)',
+                          fontVariantNumeric: 'tabular-nums',
+                          marginTop: 1,
+                        }}
+                      >
+                        {money(c.price)}
+                      </div>
+                    )}
                   </div>
                 </button>
               ))}
@@ -507,17 +511,22 @@ export default function Catalog({
                         <CoverSwatch rec={c} />
                       </td>
                       <td>
-                        <div style={{ fontWeight: 500 }}>{c.title}</div>
+                        <div style={{ fontWeight: 500 }}>
+                          {c.title}
+                          {c.variant ? ` · ${c.variant}` : ''}
+                        </div>
                         <div style={{ fontSize: 11, color: muted(45) }}>
-                          {c.keyNote || c.creators}
+                          {c.keyNote || c.character || c.creators}
                         </div>
                       </td>
                       <td className="text-muted">{c.publisher}</td>
                       <td className="text-muted" style={{ fontVariantNumeric: 'tabular-nums' }}>
-                        {c.year}
+                        {c.year > 0 ? c.year : '—'}
                       </td>
                       <td className="text-muted">{c.genre}</td>
-                      <td style={{ fontVariantNumeric: 'tabular-nums' }}>{c.grade}</td>
+                      <td style={{ fontVariantNumeric: 'tabular-nums' }}>
+                        {c.grade > 0 ? c.grade : '—'}
+                      </td>
                       <td
                         style={{
                           textAlign: 'right',

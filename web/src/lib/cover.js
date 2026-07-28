@@ -23,7 +23,9 @@ export function hueFor(pub) {
 
 export function coverFor(pub, year) {
   const h = hueFor(pub);
-  const t = Math.max(0, Math.min(1, (year - 1938) / 84));
+  // Unknown year (0) takes the mid-tone of the aging ramp
+  const y = year > 0 ? year : 1984;
+  const t = Math.max(0, Math.min(1, (y - 1938) / 84));
   const c = 0.135 - t * 0.045;
   return (
     `linear-gradient(155deg, oklch(${(0.44 - t * 0.06).toFixed(3)} ${c.toFixed(3)} ${h}) 0%, ` +
@@ -32,9 +34,12 @@ export function coverFor(pub, year) {
   );
 }
 
-/** Abbreviated display money — catalog surfaces ($3.2M, $42K, $480). */
+/**
+ * Abbreviated display money — catalog surfaces ($3.2M, $42K, $480).
+ * 0 renders as "—": an unvalued book, not a free one.
+ */
 export function money(n) {
-  if (!n && n !== 0) return '—';
+  if (!n) return '—';
   if (n >= 1000000) return '$' + (n / 1000000).toFixed(n >= 10000000 ? 0 : 1) + 'M';
   if (n >= 1000) return '$' + Math.round(n / 1000) + 'K';
   return '$' + n;

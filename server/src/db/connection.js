@@ -2,10 +2,11 @@ import { seedRecords } from './seed-data.js';
 import { createSqliteDriver } from './drivers/sqlite.js';
 import { createPostgresDriver } from './drivers/postgres.js';
 
-const INSERT = `
-INSERT INTO comics (id, series, issue, issue_sort, publisher, year, genre, grade, price, key_note, creators, image, added, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`;
+export const INSERT_COLUMNS =
+  '(id, series, issue, issue_sort, publisher, character_name, variant, year, genre, grade, price, key_note, creators, image, added, created_at, updated_at)';
+export const INSERT_PLACEHOLDERS = '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+
+const INSERT = `INSERT INTO comics ${INSERT_COLUMNS} VALUES ${INSERT_PLACEHOLDERS}`;
 
 export function insertParams(rec) {
   const now = new Date().toISOString();
@@ -15,6 +16,8 @@ export function insertParams(rec) {
     rec.issue,
     Number.parseFloat(rec.issue) || 0,
     rec.publisher,
+    rec.character ?? '',
+    rec.variant ?? '',
     rec.year,
     rec.genre,
     rec.grade,

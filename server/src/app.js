@@ -34,7 +34,7 @@ export async function createApp({
   app.set('trust proxy', 1);
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
   app.use(cors({ origin: corsOrigin === '*' ? true : corsOrigin.split(',') }));
-  app.use(express.json({ limit: '256kb' }));
+  app.use(express.json({ limit: '3mb' })); // bulk imports post a few thousand records
   app.use(
     '/api',
     rateLimit({ windowMs: 60_000, limit: 300, standardHeaders: 'draft-8', legacyHeaders: false })

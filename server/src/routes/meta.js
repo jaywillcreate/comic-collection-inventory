@@ -23,5 +23,12 @@ export function metaRouter(service, db, writeGuard) {
     res.json({ ok: true, ...(await service.stats()) });
   });
 
+  router.post('/admin/import', writeGuard, async (req, res) => {
+    const result = await service.importMany(req.body.records, {
+      replaceAll: req.body.replaceAll === true,
+    });
+    res.status(201).json(result);
+  });
+
   return router;
 }

@@ -159,7 +159,7 @@ test('CMS write API', async (t) => {
   const { base, close } = await startServer();
   t.after(close);
 
-  await t.test('accession applies the design defaults', async () => {
+  await t.test('accession applies the accession defaults', async () => {
     const res = await fetch(`${base}/api/comics`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -170,10 +170,13 @@ test('CMS write API', async (t) => {
     assert.equal(rec.series, 'Radiant Black');
     assert.equal(rec.issue, '1');
     assert.equal(rec.publisher, 'Independent');
-    assert.equal(rec.year, new Date().getFullYear());
+    assert.equal(rec.year, 0); // unknown year
+    assert.equal(rec.era, null);
     assert.equal(rec.genre, 'Indie');
-    assert.equal(rec.grade, 9.0);
+    assert.equal(rec.grade, 0); // ungraded
     assert.equal(rec.price, 0);
+    assert.equal(rec.character, '');
+    assert.equal(rec.variant, '');
     assert.equal(rec.isKey, false);
 
     // Adds appear first under "Recently added"
@@ -234,6 +237,43 @@ test('CMS write API', async (t) => {
     assert.equal(stats.publishers, 7);
     assert.equal(stats.missingScans, 30);
     assert.equal(stats.cataloguedValue, 9855010); // sum of the 30 seed prices
+  });
+});
+
+test('bulk import', async (t) => {
+  const { base, close } = await startServer();
+  t.after(close);
+
+  await t.test('replaces the catalog atomically and indexes character/variant', async () => {
+    const records = [
+      { series: 'Spawn', issue: '318', publisher: 'Image', character: 'Spawn', variant: 'Cover D' },
+      { series: 'The Maxx: Maxximized', issue: '9', publisher: 'IDW', character: 'The Maxx', variant: 'Cover B' },
+      { series: 'The Vault of Horror', issue: '1', publisher: 'EC Comics', character: 'Tales from the Crypt', creators: 'Russ Cochran' },
+      { publisher: 'No Series — invalid' },
+    ];
+    const res = await fetch(`${base}/api/admin/import`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ records, replaceAll: true }),
+    });
+    assert.equal(res.status, 201);
+    const body = await json(res);
+    assert.equal(body.imported, 3);
+    assert.equal(body.total, 3); // 30-record seed wiped
+    assert.equal(body.skipped.length, 1);
+    assert.equal(body.skipped[0].error, 'Series is required');
+
+    // Character is searchable
+    const search = await json(await fetch(`${base}/api/comics?q=maxx`));
+    assert.equal(search.meta.total, 1);
+    assert.equal(search.data[0].character, 'The Maxx');
+    assert.equal(search.data[0].variant, 'Cover B');
+    assert.equal(search.data[0].era, null); // unknown year → no era
+    assert.equal(search.data[0].grade, 0); // ungraded
+
+    // Unknown-year records belong to no era facet
+    const eras = search.facets.era.reduce((a, o) => a + o.count, 0);
+    assert.equal(eras, 0);
   });
 });
 

@@ -9,6 +9,8 @@ const emptyForm = () => ({
   series: '',
   issue: '',
   publisher: '',
+  character: '',
+  variant: '',
   year: '',
   genre: 'Superhero',
   grade: '',
@@ -134,10 +136,12 @@ export default function App() {
       series: rec.series,
       issue: String(rec.issue),
       publisher: rec.publisher,
-      year: String(rec.year),
+      character: rec.character || '',
+      variant: rec.variant || '',
+      year: rec.year > 0 ? String(rec.year) : '',
       genre: rec.genre,
-      grade: String(rec.grade),
-      price: String(rec.price),
+      grade: rec.grade > 0 ? String(rec.grade) : '',
+      price: rec.price > 0 ? String(rec.price) : '',
       creators: rec.creators,
       keyNote: rec.keyNote,
       image: rec.image,
@@ -173,18 +177,6 @@ export default function App() {
         setEditingId(null);
         setForm(emptyForm());
       }
-      setRefresh((n) => n + 1);
-    } catch (err) {
-      setFlash(err.message);
-    }
-  };
-
-  const onResetData = async () => {
-    try {
-      await api.seedReset();
-      setEditingId(null);
-      setForm(emptyForm());
-      setFlash('Seed data restored');
       setRefresh((n) => n + 1);
     } catch (err) {
       setFlash(err.message);
@@ -236,7 +228,6 @@ export default function App() {
             setForm(emptyForm());
             setFlash('');
           }}
-          onResetData={onResetData}
           inventory={inventory}
           adminQ={adminQ}
           setAdminQ={setAdminQ}
