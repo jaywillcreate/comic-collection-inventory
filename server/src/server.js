@@ -2,7 +2,7 @@ import process from 'node:process';
 import { createApp } from './app.js';
 
 const port = Number(process.env.PORT) || 4000;
-const app = createApp();
+const app = await createApp();
 
 const server = app.listen(port, () => {
   console.log(`Longbox Archive API listening on http://localhost:${port}`);

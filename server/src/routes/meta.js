@@ -10,17 +10,17 @@ import { resetToSeed } from '../db/connection.js';
 export function metaRouter(service, db, writeGuard) {
   const router = Router();
 
-  router.get('/stats', (req, res) => {
-    res.json(service.stats());
+  router.get('/stats', async (req, res) => {
+    res.json(await service.stats());
   });
 
-  router.get('/meta', (req, res) => {
-    res.json(service.meta());
+  router.get('/meta', async (req, res) => {
+    res.json(await service.meta());
   });
 
-  router.post('/admin/seed-reset', writeGuard, (req, res) => {
-    resetToSeed(db);
-    res.json({ ok: true, ...service.stats() });
+  router.post('/admin/seed-reset', writeGuard, async (req, res) => {
+    await resetToSeed(db);
+    res.json({ ok: true, ...(await service.stats()) });
   });
 
   return router;

@@ -130,14 +130,18 @@ Setting `series` to blank is a `400`. Returns the updated record; `404` if unkno
 ## `POST /api/uploads/covers` — cover scan upload *(write)*
 
 `multipart/form-data`, single file in field **`cover`**.
-JPEG/PNG/WebP/GIF/AVIF, ≤ 8 MB. Anything else → `415`.
+JPEG/PNG/WebP/GIF/AVIF, ≤ 4 MB (Vercel's request-body ceiling is ~4.5 MB).
+Anything else → `415`.
 
 ```jsonc
-// 201
+// 201 — local dev (disk): host-relative path
 { "url": "/uploads/covers/mdqk3f-9f2a01bc44d0e7aa.png", "bytes": 68, "mimeType": "image/png" }
+// 201 — production (Vercel Blob): absolute public URL
+{ "url": "https://<store>.public.blob.vercel-storage.com/covers/…png", "bytes": 68, "mimeType": "image/png" }
 ```
 
-Store `url` in the record's `image`. Files are served statically at `/uploads/…` with
+Store `url` in the record's `image`. On Vercel without a connected Blob store this
+endpoint returns `501` with remediation. Local files are served at `/uploads/…` with
 immutable caching (names are opaque and never reused).
 
 This is the production replacement for the prototype's drag-and-drop **data-URL**
@@ -185,7 +189,8 @@ handoff records. Returns `{ ok: true, …stats }`.
 
 ## `GET /api/health`
 
-`{ "ok": true, "service": "longbox-archive-api" }` — for load balancers/uptime checks.
+`{ "ok": true, "service": "longbox-archive-api", "db": "sqlite|postgres", "covers": "disk|blob|disabled" }`
+— for uptime checks and for confirming which drivers a deployment is running.
 
 ---
 

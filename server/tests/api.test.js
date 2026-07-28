@@ -5,9 +5,9 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createApp } from '../src/app.js';
 
-function startServer(options = {}) {
+async function startServer(options = {}) {
   const uploadDir = mkdtempSync(path.join(tmpdir(), 'longbox-uploads-'));
-  const app = createApp({ dbPath: ':memory:', uploadDir, ...options });
+  const app = await createApp({ dbPath: ':memory:', uploadDir, ...options });
   return new Promise((resolve) => {
     const server = app.listen(0, () => {
       const base = `http://127.0.0.1:${server.address().port}`;

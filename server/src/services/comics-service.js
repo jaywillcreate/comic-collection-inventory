@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { INSERT_SQL, insertParams } from '../db/connection.js';
 import {
   DEFAULT_SORT,
   ERA_RANGES,
@@ -14,6 +15,7 @@ import {
 /**
  * The searchable haystack — identical composition to the prototype:
  * series, "#issue", publisher, genre, creators, key note and year.
+ * Dialect-neutral: works on both SQLite and Postgres.
  */
 const HAYSTACK =
   "lower(series || ' #' || issue || ' ' || publisher || ' ' || genre || ' ' || creators || ' ' || key_note || ' ' || CAST(year AS TEXT))";
@@ -23,9 +25,14 @@ const ORDER_BY = {
   'year-desc': 'year DESC, added DESC',
   'value-desc': 'price DESC, added DESC',
   'grade-desc': 'grade DESC, added DESC',
-  'title-asc': "series COLLATE NOCASE ASC, CAST(issue AS INTEGER) ASC, issue ASC",
+  'title-asc': 'lower(series) ASC, issue_sort ASC, issue ASC',
   'added-desc': 'added DESC',
 };
+
+/** Escape LIKE wildcards in a search term (we add our own % around it). */
+function likeTerm(term) {
+  return '%' + term.replace(/[\\%_]/g, (m) => '\\' + m) + '%';
+}
 
 /** Row (snake_case) → API record (the design's state shape + derived fields). */
 export function serialize(row) {
@@ -36,16 +43,16 @@ export function serialize(row) {
     issue: row.issue,
     title: `${row.series} #${row.issue}`,
     publisher: row.publisher,
-    year: row.year,
-    era: eraFor(row.year),
+    year: Number(row.year),
+    era: eraFor(Number(row.year)),
     genre: row.genre,
-    grade: row.grade,
-    price: row.price,
+    grade: Number(row.grade),
+    price: Number(row.price),
     keyNote: row.key_note,
     isKey: row.key_note !== '',
     creators: row.creators,
     image: row.image,
-    added: row.added,
+    added: Number(row.added),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -98,8 +105,8 @@ export class ComicsService {
 
     if (f.q) {
       for (const term of f.q.toLowerCase().split(/\s+/).filter(Boolean)) {
-        clauses.push(`instr(${HAYSTACK}, ?) > 0`);
-        params.push(term);
+        clauses.push(`${HAYSTACK} LIKE ? ESCAPE '\\'`);
+        params.push(likeTerm(term));
       }
     }
     if (skipGroup !== 'publisher' && f.publisher.length) {
@@ -134,28 +141,25 @@ export class ComicsService {
   }
 
   /** Search the catalog: filtered page + total + facet counts. */
-  search(rawQuery) {
+  async search(rawQuery) {
     const f = this.parseFilters(rawQuery);
     const { sql: where, params } = this.buildWhere(f);
 
-    const rows = this.db
-      .prepare(
-        `SELECT * FROM comics ${where} ORDER BY ${ORDER_BY[f.sort]} LIMIT ? OFFSET ?`
-      )
-      .all(...params, f.limit, f.offset);
-
-    const { n: total } = this.db
-      .prepare(`SELECT COUNT(*) AS n FROM comics ${where}`)
-      .get(...params);
-    const { n: collectionTotal } = this.db
-      .prepare('SELECT COUNT(*) AS n FROM comics')
-      .get();
+    const rows = await this.db.all(
+      `SELECT * FROM comics ${where} ORDER BY ${ORDER_BY[f.sort]} LIMIT ? OFFSET ?`,
+      [...params, f.limit, f.offset]
+    );
+    const totalRow = await this.db.get(
+      `SELECT COUNT(*) AS n FROM comics ${where}`,
+      params
+    );
+    const allRow = await this.db.get('SELECT COUNT(*) AS n FROM comics');
 
     return {
       data: rows.map(serialize),
       meta: {
-        total,
-        collectionTotal,
+        total: Number(totalRow.n),
+        collectionTotal: Number(allRow.n),
         limit: f.limit,
         offset: f.offset,
         sort: f.sort,
@@ -169,7 +173,7 @@ export class ComicsService {
           priceCap: f.priceCap,
         },
       },
-      facets: this.facetCounts(f),
+      facets: await this.facetCounts(f),
     };
   }
 
@@ -177,15 +181,14 @@ export class ComicsService {
    * Facet counts for the filter rail. Each group is counted against the other
    * active filters, excluding its own — per the handoff's interaction spec.
    */
-  facetCounts(f) {
-    const countBy = (skipGroup, valueExpr) => {
+  async facetCounts(f) {
+    const countBy = async (skipGroup, valueExpr) => {
       const { sql: where, params } = this.buildWhere(f, skipGroup);
-      const rows = this.db
-        .prepare(
-          `SELECT ${valueExpr} AS value, COUNT(*) AS count FROM comics ${where} GROUP BY value`
-        )
-        .all(...params);
-      return new Map(rows.map((r) => [r.value, r.count]));
+      const rows = await this.db.all(
+        `SELECT ${valueExpr} AS value, COUNT(*) AS count FROM comics ${where} GROUP BY 1`,
+        params
+      );
+      return new Map(rows.map((r) => [r.value, Number(r.count)]));
     };
 
     const eraExpr = `CASE
@@ -195,17 +198,18 @@ export class ComicsService {
       WHEN year < 2000 THEN 'Modern Age'
       ELSE 'Contemporary' END`;
 
-    const pubCounts = countBy('publisher', 'publisher');
-    const eraCounts = countBy('era', eraExpr);
-    const genreCounts = countBy('genre', 'genre');
+    const [pubCounts, eraCounts, genreCounts, pubRows, genreRows] =
+      await Promise.all([
+        countBy('publisher', 'publisher'),
+        countBy('era', eraExpr),
+        countBy('genre', 'genre'),
+        this.db.all('SELECT DISTINCT publisher FROM comics ORDER BY publisher'),
+        this.db.all('SELECT DISTINCT genre FROM comics'),
+      ]);
 
-    const allPublishers = this.db
-      .prepare('SELECT DISTINCT publisher FROM comics ORDER BY publisher')
-      .all()
-      .map((r) => r.publisher);
-    const genresPresent = GENRES.filter((g) =>
-      this.db.prepare('SELECT 1 FROM comics WHERE genre = ? LIMIT 1').get(g)
-    );
+    const allPublishers = pubRows.map((r) => r.publisher);
+    const present = new Set(genreRows.map((r) => r.genre));
+    const genresPresent = GENRES.filter((g) => present.has(g));
 
     const shape = (values, counts, active) =>
       values.map((value) => ({
@@ -221,8 +225,8 @@ export class ComicsService {
     };
   }
 
-  getById(id) {
-    const row = this.db.prepare('SELECT * FROM comics WHERE id = ?').get(id);
+  async getById(id) {
+    const row = await this.db.get('SELECT * FROM comics WHERE id = ?', [id]);
     if (!row) return null;
     const record = serialize(row);
     return { ...record, census: censusFor(record.grade) };
@@ -232,7 +236,7 @@ export class ComicsService {
    * Accession a book. Series is required; everything else falls back to the
    * design's submit defaults (issue 1, Independent, current year, Indie, 9.0, 0).
    */
-  create(body) {
+  async create(body) {
     const rec = this.coerce(body, { applyDefaults: true });
     if (!rec.series) {
       const err = new Error('Series is required');
@@ -242,18 +246,13 @@ export class ComicsService {
     rec.id = 'u' + randomUUID();
     rec.added = Date.now();
 
-    this.db
-      .prepare(
-        `INSERT INTO comics (id, series, issue, publisher, year, genre, grade, price, key_note, creators, image, added)
-         VALUES (:id, :series, :issue, :publisher, :year, :genre, :grade, :price, :keyNote, :creators, :image, :added)`
-      )
-      .run(rec);
+    await this.db.run(INSERT_SQL, insertParams(rec));
     return this.getById(rec.id);
   }
 
   /** Patch a record in place — only the provided fields change. */
-  update(id, body) {
-    const existing = this.db.prepare('SELECT * FROM comics WHERE id = ?').get(id);
+  async update(id, body) {
+    const existing = await this.db.get('SELECT id FROM comics WHERE id = ?', [id]);
     if (!existing) return null;
 
     const patch = this.coerce(body, { applyDefaults: false });
@@ -283,17 +282,23 @@ export class ComicsService {
         params.push(patch[field]);
       }
     }
+    if ('issue' in patch) {
+      sets.push('issue_sort = ?');
+      params.push(Number.parseFloat(patch.issue) || 0);
+    }
     if (sets.length) {
-      sets.push(`updated_at = strftime('%Y-%m-%dT%H:%M:%fZ','now')`);
-      this.db
-        .prepare(`UPDATE comics SET ${sets.join(', ')} WHERE id = ?`)
-        .run(...params, id);
+      sets.push('updated_at = ?');
+      params.push(new Date().toISOString());
+      await this.db.run(
+        `UPDATE comics SET ${sets.join(', ')} WHERE id = ?`,
+        [...params, id]
+      );
     }
     return this.getById(id);
   }
 
-  remove(id) {
-    const { changes } = this.db.prepare('DELETE FROM comics WHERE id = ?').run(id);
+  async remove(id) {
+    const { changes } = await this.db.run('DELETE FROM comics WHERE id = ?', [id]);
     return changes > 0;
   }
 
@@ -314,8 +319,7 @@ export class ComicsService {
 
     if (has('series') || applyDefaults) out.series = str(body.series).slice(0, 200);
     if (has('issue') || applyDefaults) {
-      out.issue = str(body.issue).slice(0, 20) || (applyDefaults ? '1' : '');
-      if (!applyDefaults && out.issue === '') out.issue = '1';
+      out.issue = str(body.issue).slice(0, 20) || '1';
     }
     if (has('publisher') || applyDefaults) {
       out.publisher = str(body.publisher).slice(0, 120) || 'Independent';
@@ -370,33 +374,31 @@ export class ComicsService {
   }
 
   /** Aggregates behind the hero stats and the CMS stat cards. */
-  stats() {
-    const row = this.db
-      .prepare(
-        `SELECT
-           COUNT(*) AS records,
-           SUM(CASE WHEN key_note <> '' THEN 1 ELSE 0 END) AS keyIssues,
-           COUNT(DISTINCT publisher) AS publishers,
-           SUM(CASE WHEN image = '' THEN 1 ELSE 0 END) AS missingScans,
-           COALESCE(SUM(price), 0) AS cataloguedValue
-         FROM comics`
-      )
-      .get();
+  async stats() {
+    const row = await this.db.get(
+      `SELECT
+         COUNT(*) AS records,
+         SUM(CASE WHEN key_note <> '' THEN 1 ELSE 0 END) AS key_issues,
+         COUNT(DISTINCT publisher) AS publishers,
+         SUM(CASE WHEN image = '' THEN 1 ELSE 0 END) AS missing_scans,
+         COALESCE(SUM(price), 0) AS catalogued_value
+       FROM comics`
+    );
     return {
-      records: row.records,
-      keyIssues: row.keyIssues ?? 0,
-      publishers: row.publishers,
-      missingScans: row.missingScans ?? 0,
-      cataloguedValue: row.cataloguedValue,
+      records: Number(row.records),
+      keyIssues: Number(row.key_issues ?? 0),
+      publishers: Number(row.publishers),
+      missingScans: Number(row.missing_scans ?? 0),
+      cataloguedValue: Number(row.catalogued_value),
     };
   }
 
   /** Option lists + ticker feed for the catalog chrome. */
-  meta() {
-    const publishers = this.db
-      .prepare('SELECT DISTINCT publisher FROM comics ORDER BY publisher')
-      .all()
-      .map((r) => r.publisher);
+  async meta() {
+    const rows = await this.db.all(
+      'SELECT DISTINCT publisher FROM comics ORDER BY publisher'
+    );
+    const publishers = rows.map((r) => r.publisher);
     return {
       genres: GENRES,
       eras: ERAS,

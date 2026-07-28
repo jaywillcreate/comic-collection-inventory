@@ -7,33 +7,35 @@ import { Router } from 'express';
  *   POST   /            accession a book (CMS form submit)
  *   PATCH  /:id         edit record in place
  *   DELETE /:id         immediate delete
+ *
+ * Handlers are async — Express 5 forwards rejections to the error middleware.
  */
 export function comicsRouter(service, writeGuard) {
   const router = Router();
 
-  router.get('/', (req, res) => {
-    res.json(service.search(req.query));
+  router.get('/', async (req, res) => {
+    res.json(await service.search(req.query));
   });
 
-  router.get('/:id', (req, res) => {
-    const record = service.getById(req.params.id);
+  router.get('/:id', async (req, res) => {
+    const record = await service.getById(req.params.id);
     if (!record) return res.status(404).json({ error: 'Record not found' });
     res.json(record);
   });
 
-  router.post('/', writeGuard, (req, res) => {
-    const record = service.create(req.body);
+  router.post('/', writeGuard, async (req, res) => {
+    const record = await service.create(req.body);
     res.status(201).json(record);
   });
 
-  router.patch('/:id', writeGuard, (req, res) => {
-    const record = service.update(req.params.id, req.body);
+  router.patch('/:id', writeGuard, async (req, res) => {
+    const record = await service.update(req.params.id, req.body);
     if (!record) return res.status(404).json({ error: 'Record not found' });
     res.json(record);
   });
 
-  router.delete('/:id', writeGuard, (req, res) => {
-    if (!service.remove(req.params.id)) {
+  router.delete('/:id', writeGuard, async (req, res) => {
+    if (!(await service.remove(req.params.id))) {
       return res.status(404).json({ error: 'Record not found' });
     }
     res.status(204).end();

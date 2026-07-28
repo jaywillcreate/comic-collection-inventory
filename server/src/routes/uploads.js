@@ -1,8 +1,5 @@
 import { Router } from 'express';
 import multer from 'multer';
-import { randomBytes } from 'node:crypto';
-import { mkdirSync } from 'node:fs';
-import path from 'node:path';
 
 const EXTENSIONS = {
   'image/jpeg': '.jpg',
@@ -12,26 +9,18 @@ const EXTENSIONS = {
   'image/avif': '.avif',
 };
 
-const MAX_BYTES = 8 * 1024 * 1024; // 8 MB per cover scan
+// Vercel caps request bodies at ~4.5 MB, so 4 MB is the practical ceiling.
+const MAX_BYTES = 4 * 1024 * 1024;
 
 /**
  * POST /api/uploads/covers — the real upload the prototype's data-URL drop
- * zone stands in for. Accepts one image file (field name "cover"), stores it
- * under an opaque random name, returns { url } to put in the record's image.
+ * zone stands in for. Accepts one image file (field name "cover"), hands it
+ * to the configured cover storage (Vercel Blob in production, local disk in
+ * dev), returns { url } to put in the record's image field.
  */
-export function uploadsRouter(uploadDir, writeGuard) {
-  mkdirSync(path.join(uploadDir, 'covers'), { recursive: true });
-
-  const storage = multer.diskStorage({
-    destination: path.join(uploadDir, 'covers'),
-    filename: (req, file, cb) => {
-      const ext = EXTENSIONS[file.mimetype];
-      cb(null, `${Date.now().toString(36)}-${randomBytes(8).toString('hex')}${ext}`);
-    },
-  });
-
+export function uploadsRouter(storage, writeGuard) {
   const upload = multer({
-    storage,
+    storage: multer.memoryStorage(),
     limits: { fileSize: MAX_BYTES, files: 1 },
     fileFilter: (req, file, cb) => {
       if (EXTENSIONS[file.mimetype]) return cb(null, true);
@@ -45,14 +34,19 @@ export function uploadsRouter(uploadDir, writeGuard) {
 
   const router = Router();
 
-  router.post('/covers', writeGuard, upload.single('cover'), (req, res) => {
+  router.post('/covers', writeGuard, upload.single('cover'), async (req, res) => {
     if (!req.file) {
       return res
         .status(400)
         .json({ error: 'Attach an image file in the "cover" field' });
     }
+    const url = await storage.save(
+      req.file.buffer,
+      EXTENSIONS[req.file.mimetype],
+      req.file.mimetype
+    );
     res.status(201).json({
-      url: `/uploads/covers/${req.file.filename}`,
+      url,
       bytes: req.file.size,
       mimeType: req.file.mimetype,
     });

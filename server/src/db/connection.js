@@ -1,77 +1,71 @@
-import { DatabaseSync } from 'node:sqlite';
-import { mkdirSync } from 'node:fs';
-import { dirname } from 'node:path';
 import { seedRecords } from './seed-data.js';
-
-const SCHEMA = `
-CREATE TABLE IF NOT EXISTS comics (
-  id         TEXT PRIMARY KEY,
-  series     TEXT NOT NULL,
-  issue      TEXT NOT NULL DEFAULT '1',
-  publisher  TEXT NOT NULL DEFAULT 'Independent',
-  year       INTEGER NOT NULL,
-  genre      TEXT NOT NULL DEFAULT 'Indie',
-  grade      REAL NOT NULL DEFAULT 9.0,
-  price      REAL NOT NULL DEFAULT 0,
-  key_note   TEXT NOT NULL DEFAULT '',
-  creators   TEXT NOT NULL DEFAULT '',
-  image      TEXT NOT NULL DEFAULT '',
-  added      INTEGER NOT NULL,
-  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
-  updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
-);
-CREATE INDEX IF NOT EXISTS idx_comics_publisher ON comics(publisher);
-CREATE INDEX IF NOT EXISTS idx_comics_year      ON comics(year);
-CREATE INDEX IF NOT EXISTS idx_comics_genre     ON comics(genre);
-CREATE INDEX IF NOT EXISTS idx_comics_price     ON comics(price);
-CREATE INDEX IF NOT EXISTS idx_comics_added     ON comics(added);
-`;
+import { createSqliteDriver } from './drivers/sqlite.js';
+import { createPostgresDriver } from './drivers/postgres.js';
 
 const INSERT = `
-INSERT INTO comics (id, series, issue, publisher, year, genre, grade, price, key_note, creators, image, added)
-VALUES (:id, :series, :issue, :publisher, :year, :genre, :grade, :price, :keyNote, :creators, :image, :added)
+INSERT INTO comics (id, series, issue, issue_sort, publisher, year, genre, grade, price, key_note, creators, image, added, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `;
 
-/**
- * Open (and initialize) the SQLite database.
- * Seeds the design handoff's 30-record catalog when the table is empty.
- */
-export function openDatabase(dbPath = process.env.DB_PATH || 'data/longbox.db') {
-  if (dbPath !== ':memory:') {
-    mkdirSync(dirname(dbPath), { recursive: true });
-  }
-  const db = new DatabaseSync(dbPath);
-  db.exec('PRAGMA foreign_keys = ON;');
-  if (dbPath !== ':memory:') db.exec('PRAGMA journal_mode = WAL;');
-  db.exec(SCHEMA);
-
-  const { n } = db.prepare('SELECT COUNT(*) AS n FROM comics').get();
-  if (n === 0) insertSeed(db);
-  return db;
+export function insertParams(rec) {
+  const now = new Date().toISOString();
+  return [
+    rec.id,
+    rec.series,
+    rec.issue,
+    Number.parseFloat(rec.issue) || 0,
+    rec.publisher,
+    rec.year,
+    rec.genre,
+    rec.grade,
+    rec.price,
+    rec.keyNote,
+    rec.creators,
+    rec.image,
+    rec.added,
+    now,
+    now,
+  ];
 }
 
-export function insertSeed(db) {
-  const stmt = db.prepare(INSERT);
-  db.exec('BEGIN');
-  try {
-    for (const rec of seedRecords()) stmt.run(rec);
-    db.exec('COMMIT');
-  } catch (err) {
-    db.exec('ROLLBACK');
-    throw err;
+/**
+ * Open the database behind a dialect-neutral driver.
+ *
+ * - POSTGRES_URL / DATABASE_URL set → Postgres (production: Vercel + Neon).
+ * - Otherwise → Node's built-in SQLite at DB_PATH (local dev and tests).
+ *
+ * Seeds the design handoff's 30-record catalog when the table is empty.
+ */
+export async function createDatabase(dbPath = process.env.DB_PATH || 'data/longbox.db') {
+  const pgUrl = process.env.POSTGRES_URL || process.env.DATABASE_URL;
+  if (!pgUrl && process.env.VERCEL) {
+    throw new Error(
+      'No POSTGRES_URL configured. SQLite is dev-only — on Vercel, connect a ' +
+        'Postgres database (Storage → Create Database → Neon) so POSTGRES_URL is set.'
+    );
   }
+  const driver = pgUrl
+    ? await createPostgresDriver(pgUrl)
+    : await createSqliteDriver(dbPath);
+
+  await driver.migrate();
+  const row = await driver.get('SELECT COUNT(*) AS n FROM comics');
+  if (Number(row.n) === 0) await insertSeed(driver);
+  return driver;
+}
+
+export async function insertSeed(db) {
+  await db.transaction(async (tx) => {
+    for (const rec of seedRecords()) await tx.run(INSERT, insertParams(rec));
+  });
 }
 
 /** "Restore seed data" (CMS header action): wipe and re-seed atomically. */
-export function resetToSeed(db) {
-  db.exec('BEGIN');
-  try {
-    db.exec('DELETE FROM comics');
-    const stmt = db.prepare(INSERT);
-    for (const rec of seedRecords()) stmt.run(rec);
-    db.exec('COMMIT');
-  } catch (err) {
-    db.exec('ROLLBACK');
-    throw err;
-  }
+export async function resetToSeed(db) {
+  await db.transaction(async (tx) => {
+    await tx.run('DELETE FROM comics');
+    for (const rec of seedRecords()) await tx.run(INSERT, insertParams(rec));
+  });
 }
+
+export const INSERT_SQL = INSERT;

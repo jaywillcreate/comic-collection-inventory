@@ -1,0 +1,34 @@
+{
+  "name": "longbox-archive",
+  "version": "2.0.0",
+  "description": "Longbox Archive — comic collection catalog + connected CMS. Express API (Vercel function) + React frontend.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.9.0"
+  },
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env --watch server/src/server.js",
+    "start": "node --env-file-if-exists=.env server/src/server.js",
+    "seed": "node --env-file-if-exists=.env server/src/db/seed-cli.js",
+    "test": "node --test \"server/tests/**/*.test.js\"",
+    "build": "npm --prefix web run build"
+  },
+  "keywords": [
+    "comics",
+    "collection",
+    "inventory",
+    "rest-api",
+    "longbox-archive",
+    "vercel"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@vercel/blob": "^2.6.1",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.0.1",
+    "helmet": "^8.1.0",
+    "multer": "^2.0.1",
+    "pg": "^8.16.0"
+  }
+}

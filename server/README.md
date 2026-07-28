@@ -15,10 +15,10 @@ real REST API, exactly along the seams the handoff specifies:
 
 | Layer | Choice | Why |
 | --- | --- | --- |
-| Runtime | Node.js ≥ 22.5 | modern, single-language with the frontend |
-| HTTP | Express 5 | async-aware routing, minimal surface |
-| Storage | SQLite via built-in `node:sqlite` | zero native deps, file-based, right-sized for a single collection; swap for Postgres behind `ComicsService` when needed |
-| Uploads | Multer (disk) | replaces the prototype's data-URL drop with real files |
+| Runtime | Node.js ≥ 22.9 | modern, single-language with the frontend; runs as one Vercel function via `../api/index.js` |
+| HTTP | Express 5 | async-aware routing (rejected handlers hit the error middleware), minimal surface |
+| Storage | Two-driver adapter: built-in `node:sqlite` locally, Postgres (`pg`, e.g. Neon) when `POSTGRES_URL` is set | zero-setup dev + durable serverless production behind one dialect-neutral SQL layer |
+| Uploads | Multer (memory) → Vercel Blob in production, local disk in dev | replaces the prototype's data-URL drop with real files |
 | Hardening | Helmet, CORS allow-list, rate limit, optional API key on writes | sane defaults for a small public API |
 
 ## Layout
@@ -28,14 +28,18 @@ src/
   server.js               entry point (PORT, graceful shutdown)
   app.js                  express wiring — injectable db path / upload dir for tests
   db/
-    connection.js         schema, WAL, auto-seed, seed reset
+    connection.js         driver selection, auto-seed, seed reset
+    drivers/sqlite.js     local driver (node:sqlite, WAL)
+    drivers/postgres.js   production driver (pg pool, ?→$n placeholders)
     seed-data.js          the 30-issue catalog from the design handoff
     seed-cli.js           `npm run seed`
   services/
     comics-service.js     search/facets/sort query builder, CRUD, stats, validation
+  storage/
+    covers.js             cover-scan storage: Vercel Blob / local disk
   routes/
     comics.js             /api/comics CRUD + search
-    uploads.js            /api/uploads/covers (multipart)
+    uploads.js            /api/uploads/covers (multipart, ≤4 MB)
     meta.js               /api/stats, /api/meta, /api/admin/seed-reset
   middleware/
     auth.js               optional x-api-key guard on all writes
@@ -53,6 +57,9 @@ The design handoff itself lives at the repo root in `../design/`; the React fron
 that consumes this API is in `../web/`.
 
 ## Quick start
+
+From the **repo root** (dependencies live in the root `package.json` so Vercel can
+bundle the function):
 
 ```bash
 npm install
@@ -77,13 +84,16 @@ npm run seed       # or: POST /api/admin/seed-reset
 
 ## Configuration
 
-Copy `.env.example` and adjust. Everything has a dev-friendly default.
+Copy `../.env.example` to `../.env` and adjust (`npm run dev` loads it via
+`--env-file-if-exists`). Everything has a dev-friendly default.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `PORT` | `4000` | listen port |
-| `DB_PATH` | `data/longbox.db` | SQLite file (`:memory:` for ephemeral) |
-| `UPLOAD_DIR` | `uploads` | cover-scan storage, served at `/uploads` |
+| `PORT` | `4000` | listen port (local server only) |
+| `DB_PATH` | `data/longbox.db` | SQLite file (`:memory:` for ephemeral); dev-only |
+| `POSTGRES_URL` | *(unset)* | switches to the Postgres driver — set automatically when a Neon database is connected on Vercel (`DATABASE_URL` also honored) |
+| `UPLOAD_DIR` | `uploads` | local cover-scan storage, served at `/uploads` |
+| `BLOB_READ_WRITE_TOKEN` | *(unset)* | switches uploads to Vercel Blob — set automatically when a Blob store is connected |
 | `CORS_ORIGIN` | `*` | comma-separated frontend origins |
 | `ADMIN_API_KEY` | *(unset)* | when set, all writes require `x-api-key` |
 
@@ -109,18 +119,14 @@ Full reference with request/response shapes: [docs/API.md](docs/API.md).
 
 ## Deploying
 
-Any Node host works (Render, Railway, Fly.io, a VPS). The checklist:
+**Vercel** is the primary target — see the [root README](../README.md#deploy-to-vercel)
+for the full walkthrough (import repo → connect Neon Postgres + Blob store → set
+`ADMIN_API_KEY`/`VITE_ADMIN_KEY` → deploy). `GET /api/health` reports which drivers are
+active: `{"db":"postgres","covers":"blob"}` in production.
 
-1. `npm ci --omit=dev`
-2. Set `PORT`, `DB_PATH` (a persistent volume), `UPLOAD_DIR` (persistent volume),
-   `CORS_ORIGIN` (your frontend's origin) and `ADMIN_API_KEY`.
-3. `npm start`
-4. Point the frontend's API base URL at the deployment; cover-scan URLs returned by the
-   upload endpoint are host-relative (`/uploads/covers/…`), so serve frontend and API
-   from the same origin or prefix them client-side.
-
-SQLite runs in WAL mode; for multi-instance scale-out, move `ComicsService` onto
-Postgres — the SQL in it is deliberately portable.
+Any long-running Node host (Render, Railway, Fly.io, a VPS) also works: `npm ci`,
+set the env vars above (SQLite + disk uploads are fine there since disks persist),
+`npm start`.
 
 ## Provenance
 
