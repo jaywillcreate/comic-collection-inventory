@@ -1,6 +1,9 @@
 node_modules/
 data/
 uploads/
+dist/
 .env
+.env.local
 .DS_Store
 npm-debug.log*
+.claude/

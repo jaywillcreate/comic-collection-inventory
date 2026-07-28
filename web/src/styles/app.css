@@ -1,0 +1,57 @@
+/* Longbox Archive — motion, hover states and the few things inline styles
+   can't express. All values from the design handoff. */
+
+@keyframes lb-in {
+  from { opacity: 0; transform: translateX(28px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes lb-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes lb-rise {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes lb-wght {
+  0%, 100% { font-variation-settings: 'wght' 340; }
+  50% { font-variation-settings: 'wght' 780; }
+}
+@keyframes lb-reveal {
+  from { opacity: 0; transform: translateY(0.22em) scaleY(0.94); filter: blur(6px); }
+  to { opacity: 1; transform: none; filter: none; }
+}
+@keyframes lb-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.lb-reveal { animation: lb-reveal 0.8s cubic-bezier(0.2, 0.8, 0.25, 1) both; }
+.lb-dot { color: var(--color-accent); animation: lb-wght 5.5s 1.2s ease-in-out infinite; }
+.lb-marquee { display: flex; width: max-content; animation: lb-marquee 42s linear infinite; }
+.lb-panel { animation: lb-in 0.26s cubic-bezier(0.2, 0.7, 0.3, 1); }
+.lb-backdrop { animation: lb-fade 0.18s ease; }
+.lb-rise-in { animation: lb-rise 0.18s ease; }
+
+/* Card hover lift */
+.lb-card {
+  transition: transform 0.26s cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.lb-card:hover { transform: translateY(-6px); }
+
+/* Filter rail row hovers */
+.lb-facet-row { transition: background 0.14s, color 0.14s; }
+.lb-facet-row:hover { background: color-mix(in srgb, var(--color-text) 7%, transparent); }
+.lb-keyonly { transition: background 0.15s; }
+.lb-keyonly:hover { background: color-mix(in srgb, var(--color-accent) 10%, transparent); }
+
+.lb-chip { cursor: pointer; background: transparent; gap: 6px; font-family: inherit; }
+
+input[type='checkbox'], input[type='range'] { accent-color: #968ae0; }
+
+/* Respect prefers-reduced-motion: disable lb-wght and lb-marquee per handoff */
+@media (prefers-reduced-motion: reduce) {
+  .lb-dot, .lb-marquee { animation: none; }
+  .lb-reveal, .lb-panel, .lb-backdrop, .lb-rise-in { animation: none; }
+  .lb-card, .lb-card:hover { transition: none; transform: none; }
+}
