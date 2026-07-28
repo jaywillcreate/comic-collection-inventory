@@ -68,6 +68,26 @@ Redeploys are automatic on every push to `main`.
 - **Design tokens / spec**: [design/README.md](design/README.md) — the Nocturne token
   sheet is ported to [web/src/styles/nocturne.css](web/src/styles/nocturne.css).
 
+## Cover images
+
+Records without a cover URL render a generated typographic plate. To populate real
+covers from the web (matched per issue via the **Comic Vine** API):
+
+1. Get a free API key at https://comicvine.gamespot.com/api/ and set it as
+   `COMICVINE_API_KEY` — in Vercel (enables auto-matching whenever a book is
+   accessioned without a cover) and in the local `.env` (used by the backfill).
+2. Backfill the whole catalog (throttled to Comic Vine's ~200 req/hr, resumable —
+   re-running skips finished records):
+
+   ```bash
+   node --env-file-if-exists=.env scripts/backfill-covers.mjs --target https://your-app.vercel.app --key <ADMIN_API_KEY>
+   ```
+
+Matching is conservative: fuzzy title + publisher scoring with a confidence
+threshold, so unmatched books keep their plates rather than getting wrong covers.
+Fix any individual record through the CMS cover module. Attribution to Comic Vine
+is shown in the site footer, per their API terms.
+
 ## Notes
 
 - Local and production use the same dialect-neutral SQL through a two-driver adapter

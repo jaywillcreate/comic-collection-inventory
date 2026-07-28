@@ -238,6 +238,23 @@ export default function App() {
         />
       )}
 
+      <footer
+        style={{
+          maxWidth: 1580,
+          margin: '0 auto',
+          padding: '0 clamp(14px,3vw,34px) 28px',
+          fontSize: 10,
+          letterSpacing: '0.14em',
+          textTransform: 'uppercase',
+          color: 'color-mix(in srgb, var(--color-text) 32%, transparent)',
+        }}
+      >
+        Cover imagery via{' '}
+        <a href="https://comicvine.gamespot.com" target="_blank" rel="noopener noreferrer">
+          Comic Vine
+        </a>
+      </footer>
+
       <DetailPanel sel={selected} onClose={() => setSelectedId(null)} onEdit={startEdit} />
     </div>
   );

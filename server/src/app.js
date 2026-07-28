@@ -6,6 +6,7 @@ import path from 'node:path';
 
 import { createDatabase } from './db/connection.js';
 import { createCoverStorage } from './storage/covers.js';
+import { CoverLookup } from './services/cover-lookup.js';
 import { ComicsService } from './services/comics-service.js';
 import { comicsRouter } from './routes/comics.js';
 import { uploadsRouter } from './routes/uploads.js';
@@ -24,10 +25,12 @@ export async function createApp({
   uploadDir = process.env.UPLOAD_DIR || 'uploads',
   corsOrigin = process.env.CORS_ORIGIN || '*',
   apiKey = process.env.ADMIN_API_KEY || '',
+  comicVineKey = process.env.COMICVINE_API_KEY || '',
 } = {}) {
   const db = await createDatabase(dbPath);
   const storage = createCoverStorage(uploadDir);
-  const service = new ComicsService(db);
+  const coverLookup = comicVineKey ? new CoverLookup(comicVineKey) : null;
+  const service = new ComicsService(db, { coverLookup });
   const writeGuard = requireApiKey(apiKey);
 
   const app = express();
@@ -54,7 +57,13 @@ export async function createApp({
   }
 
   app.get('/api/health', (req, res) =>
-    res.json({ ok: true, service: 'longbox-archive-api', db: db.dialect, covers: storage.mode })
+    res.json({
+      ok: true,
+      service: 'longbox-archive-api',
+      db: db.dialect,
+      covers: storage.mode,
+      coverLookup: coverLookup ? 'comicvine' : 'off',
+    })
   );
   app.use('/api/comics', comicsRouter(service, writeGuard));
   app.use('/api/uploads', uploadsRouter(storage, writeGuard));

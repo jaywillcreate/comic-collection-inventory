@@ -67,8 +67,9 @@ export function serialize(row) {
 }
 
 export class ComicsService {
-  constructor(db) {
+  constructor(db, { coverLookup = null } = {}) {
     this.db = db;
+    this.coverLookup = coverLookup;
   }
 
   /**
@@ -255,6 +256,12 @@ export class ComicsService {
     }
     rec.id = 'u' + randomUUID();
     rec.added = Date.now();
+
+    // Default cover: best-effort web match when none was supplied.
+    if (!rec.image && this.coverLookup) {
+      const { resolveWithTimeout } = await import('./cover-lookup.js');
+      rec.image = (await resolveWithTimeout(this.coverLookup, rec)) || '';
+    }
 
     await this.db.run(INSERT_SQL, insertParams(rec));
     return this.getById(rec.id);
