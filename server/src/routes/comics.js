@@ -29,6 +29,12 @@ export function comicsRouter(service, writeGuard) {
     res.json(result);
   });
 
+  router.get('/:id/value', async (req, res) => {
+    const result = await service.getValue(req.params.id);
+    if (!result) return res.status(404).json({ error: 'Record not found' });
+    res.json(result);
+  });
+
   router.post('/', writeGuard, async (req, res) => {
     const record = await service.create(req.body);
     res.status(201).json(record);

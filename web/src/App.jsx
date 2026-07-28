@@ -56,6 +56,7 @@ export default function App() {
   const [adminQ, setAdminQ] = useState('');
   const [inventory, setInventory] = useState(null);
   const [summary, setSummary] = useState({ state: 'idle', text: null });
+  const [valueLoading, setValueLoading] = useState(false);
 
   const [refresh, setRefresh] = useState(0);
   const flashTimer = useRef(null);
@@ -148,6 +149,34 @@ export default function App() {
       live = false;
     };
   }, [selectedId]);
+
+  // Market value for the open record — unvalued books get a labeled
+  // estimate from live eBay listings, computed and cached server-side.
+  useEffect(() => {
+    if (!selected || selected.price > 0) {
+      setValueLoading(false);
+      return;
+    }
+    let live = true;
+    setValueLoading(true);
+    api
+      .value(selected.id)
+      .then((v) => {
+        if (!live) return;
+        if (v.price > 0) {
+          setSelected((prev) =>
+            prev && prev.id === v.id
+              ? { ...prev, price: v.price, priceSource: v.priceSource, priceNote: v.priceNote }
+              : prev
+          );
+        }
+      })
+      .catch(() => {})
+      .finally(() => live && setValueLoading(false));
+    return () => {
+      live = false;
+    };
+  }, [selected?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Synopsis for the open record — cached ones arrive with the record;
   // otherwise fetched (and persisted server-side) on first open.
@@ -320,6 +349,7 @@ export default function App() {
       <DetailPanel
         sel={selected}
         summary={summary}
+        valueLoading={valueLoading}
         onClose={() => setSelectedId(null)}
         onEdit={startEdit}
       />

@@ -39,6 +39,7 @@ export const api = {
   search: (filters) => http(`/api/comics?${searchParams(filters)}`),
   get: (id) => http(`/api/comics/${encodeURIComponent(id)}`),
   summary: (id) => http(`/api/comics/${encodeURIComponent(id)}/summary`),
+  value: (id) => http(`/api/comics/${encodeURIComponent(id)}/value`),
   create: (body) => http('/api/comics', { method: 'POST', body }),
   update: (id, body) =>
     http(`/api/comics/${encodeURIComponent(id)}`, { method: 'PATCH', body }),

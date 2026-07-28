@@ -312,6 +312,54 @@ test('record summary endpoint', async (t) => {
   assert.equal((await fetch(`${base}/api/comics/nope/summary`)).status, 404);
 });
 
+test('record value endpoint', async (t) => {
+  let estimates = 0;
+  const fakeValue = {
+    estimate: async () => {
+      estimates++;
+      return { value: 45, sampleSize: 7, query: 'q' };
+    },
+  };
+  const { base, close } = await startServer({ valueLookup: fakeValue });
+  t.after(close);
+
+  // A record with a manual price returns cached and never triggers a lookup
+  const priced = await json(await fetch(`${base}/api/comics?q=action+comics`));
+  const pricedVal = await json(await fetch(`${base}/api/comics/${priced.data[0].id}/value`));
+  assert.equal(pricedVal.source, 'cached');
+  assert.equal(pricedVal.price, 3200000);
+  assert.equal(estimates, 0);
+
+  // An unpriced record gets a labeled, persisted estimate
+  const created = await json(
+    await fetch(`${base}/api/comics`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ series: 'Unpriced Book' }),
+    })
+  );
+  const est = await json(await fetch(`${base}/api/comics/${created.id}/value`));
+  assert.equal(est.price, 45);
+  assert.equal(est.priceSource, 'ebay-estimate');
+  assert.match(est.priceNote, /median of 7 eBay listings/);
+
+  const again = await json(await fetch(`${base}/api/comics/${created.id}/value`));
+  assert.equal(again.source, 'cached');
+  assert.equal(estimates, 1);
+
+  // A manual PATCH overrides the estimate and clears the labeling
+  const patched = await json(
+    await fetch(`${base}/api/comics/${created.id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ price: 60 }),
+    })
+  );
+  assert.equal(patched.price, 60);
+  assert.equal(patched.priceSource, 'manual');
+  assert.equal(patched.priceNote, '');
+});
+
 test('meta endpoint lists options and ticker feed', async (t) => {
   const { base, close } = await startServer();
   t.after(close);

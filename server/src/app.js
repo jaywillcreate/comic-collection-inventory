@@ -7,6 +7,7 @@ import path from 'node:path';
 import { createDatabase } from './db/connection.js';
 import { createCoverStorage } from './storage/covers.js';
 import { CoverLookup } from './services/cover-lookup.js';
+import { ValueLookup } from './services/value-lookup.js';
 import { ComicsService } from './services/comics-service.js';
 import { comicsRouter } from './routes/comics.js';
 import { uploadsRouter } from './routes/uploads.js';
@@ -26,13 +27,21 @@ export async function createApp({
   corsOrigin = process.env.CORS_ORIGIN || '*',
   apiKey = process.env.ADMIN_API_KEY || '',
   comicVineKey = process.env.COMICVINE_API_KEY || '',
+  ebayClientId = process.env.EBAY_CLIENT_ID || '',
+  ebayClientSecret = process.env.EBAY_CLIENT_SECRET || '',
   coverLookup: coverLookupOverride = null, // injectable for tests
+  valueLookup: valueLookupOverride = null,
 } = {}) {
   const db = await createDatabase(dbPath);
   const storage = createCoverStorage(uploadDir);
   const coverLookup =
     coverLookupOverride || (comicVineKey ? new CoverLookup(comicVineKey) : null);
-  const service = new ComicsService(db, { coverLookup });
+  const valueLookup =
+    valueLookupOverride ||
+    (ebayClientId && ebayClientSecret
+      ? new ValueLookup(ebayClientId, ebayClientSecret)
+      : null);
+  const service = new ComicsService(db, { coverLookup, valueLookup });
   const writeGuard = requireApiKey(apiKey);
 
   const app = express();
@@ -65,6 +74,7 @@ export async function createApp({
       db: db.dialect,
       covers: storage.mode,
       coverLookup: coverLookup ? 'comicvine' : 'off',
+      valueLookup: valueLookup ? 'ebay' : 'off',
     })
   );
   app.use('/api/comics', comicsRouter(service, writeGuard));

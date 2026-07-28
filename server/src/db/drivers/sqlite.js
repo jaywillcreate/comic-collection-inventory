@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS comics (
   genre          TEXT NOT NULL DEFAULT 'Indie',
   grade          REAL NOT NULL DEFAULT 0,
   price          REAL NOT NULL DEFAULT 0,
+  price_source   TEXT NOT NULL DEFAULT '',
+  price_note     TEXT NOT NULL DEFAULT '',
   key_note       TEXT NOT NULL DEFAULT '',
   creators       TEXT NOT NULL DEFAULT '',
   image          TEXT NOT NULL DEFAULT '',
@@ -67,6 +69,12 @@ export async function createSqliteDriver(dbPath) {
       }
       if (!cols.has('summary')) {
         db.exec("ALTER TABLE comics ADD COLUMN summary TEXT NOT NULL DEFAULT ''");
+      }
+      if (!cols.has('price_source')) {
+        db.exec("ALTER TABLE comics ADD COLUMN price_source TEXT NOT NULL DEFAULT ''");
+      }
+      if (!cols.has('price_note')) {
+        db.exec("ALTER TABLE comics ADD COLUMN price_note TEXT NOT NULL DEFAULT ''");
       }
     },
     async transaction(fn) {

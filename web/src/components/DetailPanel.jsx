@@ -3,16 +3,22 @@ import { Halftone, Spine } from './CoverPlate.jsx';
 import { coverFor, money, muted } from '../lib/cover.js';
 
 /** Record detail slide-over: backdrop + right-anchored panel (lb-in). */
-export default function DetailPanel({ sel, summary, onClose, onEdit }) {
+export default function DetailPanel({ sel, summary, valueLoading, onClose, onEdit }) {
   if (!sel) return null;
   const showSynopsis =
     summary && (summary.state === 'loading' || (summary.state === 'done' && summary.text));
+  const isEstimate = sel.priceSource === 'ebay-estimate';
+  const valueDisplay = valueLoading
+    ? 'Checking…'
+    : sel.price > 0
+      ? (isEstimate ? '≈ ' : '') + money(sel.price)
+      : '—';
 
   const specs = [
     { label: 'Cover date', value: sel.year > 0 ? sel.year : '—' },
     { label: 'Issue', value: '#' + sel.issue },
     { label: 'Grade', value: sel.grade > 0 ? 'CGC ' + Number(sel.grade).toFixed(1) : 'Ungraded' },
-    { label: 'Market value', value: money(sel.price) },
+    { label: 'Market value', value: valueDisplay },
     { label: 'Era', value: sel.era || '—' },
     { label: 'Genre', value: sel.genre },
   ];
@@ -206,6 +212,12 @@ export default function DetailPanel({ sel, summary, onClose, onEdit }) {
               </div>
             ))}
           </div>
+
+          {sel.priceNote && (
+            <div style={{ fontSize: 11, color: muted(40), marginTop: -10 }}>
+              {sel.priceNote} — asking prices, not sales; set an exact value in the CMS.
+            </div>
+          )}
 
           {showSynopsis && (
             <div>

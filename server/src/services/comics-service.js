@@ -61,6 +61,8 @@ export function serialize(row) {
     creators: row.creators,
     image: row.image,
     summary: row.summary || '',
+    priceSource: row.price_source || '',
+    priceNote: row.price_note || '',
     added: Number(row.added),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -68,9 +70,10 @@ export function serialize(row) {
 }
 
 export class ComicsService {
-  constructor(db, { coverLookup = null } = {}) {
+  constructor(db, { coverLookup = null, valueLookup = null } = {}) {
     this.db = db;
     this.coverLookup = coverLookup;
+    this.valueLookup = valueLookup;
   }
 
   /**
@@ -271,6 +274,41 @@ export class ComicsService {
   }
 
   /**
+   * Market value for the record drawer. Manual prices (or already-estimated
+   * ones) return cached; otherwise a labeled estimate is computed from live
+   * eBay listings and stored. Estimates never overwrite manual prices.
+   */
+  async getValue(id) {
+    const row = await this.db.get('SELECT * FROM comics WHERE id = ?', [id]);
+    if (!row) return null;
+    if (Number(row.price) > 0) {
+      return {
+        id,
+        price: Number(row.price),
+        priceSource: row.price_source || 'manual',
+        priceNote: row.price_note || '',
+        source: 'cached',
+      };
+    }
+    if (!this.valueLookup) return { id, price: 0, priceSource: '', priceNote: '', source: null };
+
+    let est = null;
+    try {
+      est = await this.valueLookup.estimate(serialize(row));
+    } catch {
+      return { id, price: 0, priceSource: '', priceNote: '', source: null };
+    }
+    if (!est) return { id, price: 0, priceSource: '', priceNote: '', source: 'ebay' };
+
+    const note = `Est. — median of ${est.sampleSize} eBay listings, ${new Date().toISOString().slice(0, 10)}`;
+    await this.db.run(
+      `UPDATE comics SET price = ?, price_source = 'ebay-estimate', price_note = ?, updated_at = ? WHERE id = ?`,
+      [est.value, note, new Date().toISOString(), id]
+    );
+    return { id, price: est.value, priceSource: 'ebay-estimate', priceNote: note, source: 'ebay' };
+  }
+
+  /**
    * Accession a book. Series is required; everything else falls back to the
    * design's submit defaults (issue 1, Independent, current year, Indie, 9.0, 0).
    */
@@ -331,6 +369,11 @@ export class ComicsService {
     if ('issue' in patch) {
       sets.push('issue_sort = ?');
       params.push(Number.parseFloat(patch.issue) || 0);
+    }
+    if ('price' in patch) {
+      // A hand-entered price is authoritative — clear any estimate labeling.
+      sets.push("price_source = ?", "price_note = ''");
+      params.push(patch.price > 0 ? 'manual' : '');
     }
     if (sets.length) {
       sets.push('updated_at = ?');
