@@ -20,6 +20,8 @@ export default function Catalog({
   clearAll,
   openRecord,
   loadMore,
+  loadingMore,
+  pageSize,
 }) {
   const { q, pub, era, genre, keyOnly, priceCap, sort, layout } = filters;
   const set = (patch) => setFilters((f) => ({ ...f, ...patch }));
@@ -544,10 +546,62 @@ export default function Catalog({
           )}
 
           {meta && data.length < meta.total && (
-            <div style={{ paddingTop: 18, textAlign: 'center' }}>
-              <button className="btn btn-secondary" onClick={loadMore}>
-                Show more ({data.length} of {meta.total})
-              </button>
+            <div
+              style={{
+                padding: '30px 0 6px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 11,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10,
+                  letterSpacing: '0.2em',
+                  textTransform: 'uppercase',
+                  color: muted(45),
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                Showing {data.length.toLocaleString()} of {meta.total.toLocaleString()} books
+              </div>
+              <div
+                style={{
+                  width: 'min(320px, 100%)',
+                  height: 2,
+                  borderRadius: 1,
+                  background: 'var(--color-divider)',
+                  overflow: 'hidden',
+                }}
+              >
+                <div
+                  style={{
+                    width: `${Math.round((data.length / meta.total) * 100)}%`,
+                    height: '100%',
+                    background: 'var(--color-accent)',
+                    transition: 'width .3s ease',
+                  }}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => loadMore(false)}
+                  disabled={loadingMore}
+                >
+                  {loadingMore
+                    ? 'Loading…'
+                    : `Show ${Math.min(pageSize, meta.total - data.length)} more`}
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => loadMore(true)}
+                  disabled={loadingMore}
+                >
+                  Show all {meta.total.toLocaleString()}
+                </button>
+              </div>
             </div>
           )}
 

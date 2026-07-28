@@ -114,10 +114,10 @@ export class CoverLookup {
   }
 
   /**
-   * Resolve a cover image URL for {series, issue, publisher}.
+   * Fetch the matched issue's details (cover image, story name, synopsis).
    * Returns null when there is no confident match — never guesses.
    */
-  async resolve(rec) {
+  async issueDetails(rec) {
     const issueNum = Number.parseFloat(rec.issue);
     if (!Number.isFinite(issueNum)) return null;
 
@@ -126,13 +126,66 @@ export class CoverLookup {
 
     const issues = await this.api('/issues/', {
       filter: `volume:${vol.id},issue_number:${issueNum}`,
-      field_list: 'issue_number,image',
+      field_list: 'issue_number,image,name,deck,description,site_detail_url',
       limit: '5',
     });
-    const issue = (issues || []).find((i) => i.image);
-    if (!issue) return null;
-    return issue.image.super_url || issue.image.medium_url || issue.image.original_url || null;
+    if (!issues || !issues.length) return null;
+    const withImage = issues.find((i) => i.image) || issues[0];
+    return {
+      name: withImage.name || '',
+      deck: withImage.deck || '',
+      description: withImage.description || '',
+      siteUrl: withImage.site_detail_url || '',
+      imageUrl: withImage.image
+        ? withImage.image.super_url || withImage.image.medium_url || withImage.image.original_url
+        : null,
+    };
   }
+
+  /** Resolve just the cover image URL for {series, issue, publisher}. */
+  async resolve(rec) {
+    const details = await this.issueDetails(rec);
+    return details?.imageUrl || null;
+  }
+}
+
+/** Comic Vine descriptions are HTML — flatten to plain text. */
+export function htmlToText(html) {
+  return String(html || '')
+    .replace(/<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<\/(p|div|li|h\d|br|tr)>/gi, ' ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;|&apos;|&rsquo;|&#8217;/g, "'")
+    .replace(/&ldquo;|&#8220;|&rdquo;|&#8221;/g, '"')
+    .replace(/&mdash;|&#8212;/g, '—')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/**
+ * Build a drawer-sized synopsis from issue details: the story title plus the
+ * deck (Comic Vine's one-line summary) or a sentence-truncated description.
+ */
+export function buildSummary(details, max = 700) {
+  if (!details) return '';
+  const deck = htmlToText(details.deck);
+  const desc = htmlToText(details.description);
+  let body = deck.length >= 60 ? deck : desc || deck;
+  if (!body) return '';
+  if (body.length > max) {
+    const cut = body.slice(0, max);
+    const end = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('! '), cut.lastIndexOf('? '));
+    body = end > max * 0.4 ? cut.slice(0, end + 1) : cut.trimEnd() + '…';
+  }
+  const name = htmlToText(details.name);
+  return name && !body.toLowerCase().startsWith(name.toLowerCase())
+    ? `“${name}” — ${body}`
+    : body;
 }
 
 /** Best-effort resolve with a deadline — used by the accession hook. */

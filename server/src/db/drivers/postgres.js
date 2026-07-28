@@ -16,12 +16,14 @@ CREATE TABLE IF NOT EXISTS comics (
   key_note       TEXT NOT NULL DEFAULT '',
   creators       TEXT NOT NULL DEFAULT '',
   image          TEXT NOT NULL DEFAULT '',
+  summary        TEXT NOT NULL DEFAULT '',
   added          DOUBLE PRECISION NOT NULL,
   created_at     TEXT NOT NULL,
   updated_at     TEXT NOT NULL
 );
 ALTER TABLE comics ADD COLUMN IF NOT EXISTS character_name TEXT NOT NULL DEFAULT '';
 ALTER TABLE comics ADD COLUMN IF NOT EXISTS variant TEXT NOT NULL DEFAULT '';
+ALTER TABLE comics ADD COLUMN IF NOT EXISTS summary TEXT NOT NULL DEFAULT '';
 CREATE INDEX IF NOT EXISTS idx_comics_publisher ON comics(publisher);
 CREATE INDEX IF NOT EXISTS idx_comics_year      ON comics(year);
 CREATE INDEX IF NOT EXISTS idx_comics_genre     ON comics(genre);

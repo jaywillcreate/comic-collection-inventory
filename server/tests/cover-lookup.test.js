@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   CoverLookup,
+  buildSummary,
+  htmlToText,
   normalize,
   pickBestVolume,
   similarity,
@@ -40,6 +42,27 @@ test('pickBestVolume matches descriptive collection titles', () => {
 test('pickBestVolume returns null below the confidence threshold', () => {
   const volumes = [{ id: 9, name: 'Completely Unrelated', publisher: { name: 'Nobody' }, count_of_issues: 5 }];
   assert.equal(pickBestVolume({ series: 'Spawn', issue: '1', publisher: 'Image' }, volumes), null);
+});
+
+test('htmlToText flattens Comic Vine HTML', () => {
+  assert.equal(
+    htmlToText('<p>Al Simmons <em>returns</em>.</p><p>He&#39;s angry &amp; armed.</p>'),
+    "Al Simmons returns. He's angry & armed."
+  );
+});
+
+test('buildSummary prefixes the story title and truncates at a sentence', () => {
+  const details = {
+    name: 'Bloodfeud',
+    deck: '',
+    description: `<p>${'Al Simmons faces his past. '.repeat(40)}</p>`,
+  };
+  const s = buildSummary(details, 200);
+  assert.ok(s.startsWith('“Bloodfeud” — Al Simmons faces his past.'));
+  assert.ok(s.length <= 220);
+  assert.match(s, /\.$/); // ends on a sentence boundary
+  assert.equal(buildSummary(null), '');
+  assert.equal(buildSummary({ name: '', deck: '', description: '' }), '');
 });
 
 test('CoverLookup.resolve walks search → issues and returns the image URL', async () => {

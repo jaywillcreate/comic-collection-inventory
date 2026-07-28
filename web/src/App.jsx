@@ -37,10 +37,11 @@ const INV_PAGE = 40;
 export default function App() {
   const [view, setView] = useState('catalog');
 
-  // Catalog state — search, facets and sort resolve server-side.
+  // Catalog state — search, facets and sort resolve server-side; results
+  // accumulate page by page (the API caps any single request at 200).
   const [filters, setFilters] = useState(defaultFilters());
-  const [catLimit, setCatLimit] = useState(PAGE);
   const [catalog, setCatalog] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const [stats, setStats] = useState(null);
   const [meta, setMeta] = useState(null);
@@ -53,8 +54,8 @@ export default function App() {
   const [editingId, setEditingId] = useState(null);
   const [flash, setFlashText] = useState('');
   const [adminQ, setAdminQ] = useState('');
-  const [invLimit, setInvLimit] = useState(INV_PAGE);
   const [inventory, setInventory] = useState(null);
+  const [summary, setSummary] = useState({ state: 'idle', text: null });
 
   const [refresh, setRefresh] = useState(0);
   const flashTimer = useRef(null);
@@ -74,26 +75,63 @@ export default function App() {
   }, [refresh]);
 
   // Catalog search — debounced so typing and the ceiling slider stay live.
+  // Filter changes restart from page one.
   useEffect(() => {
     const t = setTimeout(() => {
       api
-        .search({ ...filters, limit: catLimit })
+        .search({ ...filters, limit: PAGE, offset: 0 })
         .then(setCatalog)
         .catch(console.error);
     }, 180);
     return () => clearTimeout(t);
-  }, [filters, catLimit, refresh]);
+  }, [filters, refresh]);
 
-  // CMS inventory — most recent first, paginated.
+  // Append the next page (or every remaining page) to the wall/ledger.
+  const loadMore = async (all = false) => {
+    if (!catalog || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      let { data, meta, facets } = catalog;
+      do {
+        const res = await api.search({
+          ...filters,
+          limit: all ? 200 : PAGE,
+          offset: data.length,
+        });
+        if (!res.data.length) break;
+        data = [...data, ...res.data];
+        meta = res.meta;
+        facets = res.facets;
+        setCatalog({ data, meta, facets });
+      } while (all && data.length < meta.total);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  // CMS inventory — most recent first, same accumulating pagination.
   useEffect(() => {
     const t = setTimeout(() => {
       api
-        .search({ q: adminQ, sort: 'added-desc', limit: invLimit })
+        .search({ q: adminQ, sort: 'added-desc', limit: INV_PAGE, offset: 0 })
         .then(setInventory)
         .catch(console.error);
     }, 180);
     return () => clearTimeout(t);
-  }, [adminQ, invLimit, refresh]);
+  }, [adminQ, refresh]);
+
+  const loadMoreInventory = async () => {
+    if (!inventory) return;
+    const res = await api.search({
+      q: adminQ,
+      sort: 'added-desc',
+      limit: INV_PAGE,
+      offset: inventory.data.length,
+    });
+    setInventory((v) => ({ ...res, data: [...v.data, ...res.data] }));
+  };
 
   // Record detail (includes census)
   useEffect(() => {
@@ -110,6 +148,28 @@ export default function App() {
       live = false;
     };
   }, [selectedId]);
+
+  // Synopsis for the open record — cached ones arrive with the record;
+  // otherwise fetched (and persisted server-side) on first open.
+  useEffect(() => {
+    if (!selected) {
+      setSummary({ state: 'idle', text: null });
+      return;
+    }
+    if (selected.summary) {
+      setSummary({ state: 'done', text: selected.summary });
+      return;
+    }
+    let live = true;
+    setSummary({ state: 'loading', text: null });
+    api
+      .summary(selected.id)
+      .then((r) => live && setSummary({ state: 'done', text: r.summary }))
+      .catch(() => live && setSummary({ state: 'done', text: null }));
+    return () => {
+      live = false;
+    };
+  }, [selected]);
 
   const clearAll = () =>
     setFilters((f) => ({
@@ -209,7 +269,9 @@ export default function App() {
           setFilters={setFilters}
           clearAll={clearAll}
           openRecord={setSelectedId}
-          loadMore={() => setCatLimit((n) => Math.min(200, n + PAGE))}
+          loadMore={loadMore}
+          loadingMore={loadingMore}
+          pageSize={PAGE}
         />
       )}
 
@@ -233,7 +295,7 @@ export default function App() {
           setAdminQ={setAdminQ}
           onEdit={startEdit}
           onDelete={onDelete}
-          onShowMore={() => setInvLimit((n) => Math.min(200, n + INV_PAGE))}
+          onShowMore={loadMoreInventory}
           uploadCover={api.uploadCover}
         />
       )}
@@ -255,7 +317,12 @@ export default function App() {
         </a>
       </footer>
 
-      <DetailPanel sel={selected} onClose={() => setSelectedId(null)} onEdit={startEdit} />
+      <DetailPanel
+        sel={selected}
+        summary={summary}
+        onClose={() => setSelectedId(null)}
+        onEdit={startEdit}
+      />
     </div>
   );
 }

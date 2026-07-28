@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS comics (
   key_note       TEXT NOT NULL DEFAULT '',
   creators       TEXT NOT NULL DEFAULT '',
   image          TEXT NOT NULL DEFAULT '',
+  summary        TEXT NOT NULL DEFAULT '',
   added          INTEGER NOT NULL,
   created_at     TEXT NOT NULL,
   updated_at     TEXT NOT NULL
@@ -63,6 +64,9 @@ export async function createSqliteDriver(dbPath) {
       }
       if (!cols.has('variant')) {
         db.exec("ALTER TABLE comics ADD COLUMN variant TEXT NOT NULL DEFAULT ''");
+      }
+      if (!cols.has('summary')) {
+        db.exec("ALTER TABLE comics ADD COLUMN summary TEXT NOT NULL DEFAULT ''");
       }
     },
     async transaction(fn) {

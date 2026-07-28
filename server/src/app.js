@@ -26,10 +26,12 @@ export async function createApp({
   corsOrigin = process.env.CORS_ORIGIN || '*',
   apiKey = process.env.ADMIN_API_KEY || '',
   comicVineKey = process.env.COMICVINE_API_KEY || '',
+  coverLookup: coverLookupOverride = null, // injectable for tests
 } = {}) {
   const db = await createDatabase(dbPath);
   const storage = createCoverStorage(uploadDir);
-  const coverLookup = comicVineKey ? new CoverLookup(comicVineKey) : null;
+  const coverLookup =
+    coverLookupOverride || (comicVineKey ? new CoverLookup(comicVineKey) : null);
   const service = new ComicsService(db, { coverLookup });
   const writeGuard = requireApiKey(apiKey);
 

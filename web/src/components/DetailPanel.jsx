@@ -3,8 +3,10 @@ import { Halftone, Spine } from './CoverPlate.jsx';
 import { coverFor, money, muted } from '../lib/cover.js';
 
 /** Record detail slide-over: backdrop + right-anchored panel (lb-in). */
-export default function DetailPanel({ sel, onClose, onEdit }) {
+export default function DetailPanel({ sel, summary, onClose, onEdit }) {
   if (!sel) return null;
+  const showSynopsis =
+    summary && (summary.state === 'loading' || (summary.state === 'done' && summary.text));
 
   const specs = [
     { label: 'Cover date', value: sel.year > 0 ? sel.year : '—' },
@@ -204,6 +206,31 @@ export default function DetailPanel({ sel, onClose, onEdit }) {
               </div>
             ))}
           </div>
+
+          {showSynopsis && (
+            <div>
+              <div
+                style={{
+                  fontSize: 10,
+                  letterSpacing: '0.16em',
+                  textTransform: 'uppercase',
+                  color: muted(45),
+                  marginBottom: 7,
+                }}
+              >
+                Synopsis
+              </div>
+              {summary.state === 'loading' ? (
+                <div style={{ fontSize: 13, color: muted(40), fontStyle: 'italic' }}>
+                  Looking up this issue…
+                </div>
+              ) : (
+                <div style={{ fontSize: 14, lineHeight: 1.55, textWrap: 'pretty' }}>
+                  {summary.text}
+                </div>
+              )}
+            </div>
+          )}
 
           {sel.census && sel.grade > 0 && (
             <div>

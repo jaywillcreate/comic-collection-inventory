@@ -38,6 +38,7 @@ function searchParams({ q, pub, era, genre, keyOnly, priceCap, sort, limit, offs
 export const api = {
   search: (filters) => http(`/api/comics?${searchParams(filters)}`),
   get: (id) => http(`/api/comics/${encodeURIComponent(id)}`),
+  summary: (id) => http(`/api/comics/${encodeURIComponent(id)}/summary`),
   create: (body) => http('/api/comics', { method: 'POST', body }),
   update: (id, body) =>
     http(`/api/comics/${encodeURIComponent(id)}`, { method: 'PATCH', body }),

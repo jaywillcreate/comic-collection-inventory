@@ -277,6 +277,41 @@ test('bulk import', async (t) => {
   });
 });
 
+test('record summary endpoint', async (t) => {
+  let lookups = 0;
+  const fakeLookup = {
+    issueDetails: async () => {
+      lookups++;
+      return {
+        name: 'Master Race',
+        deck: '',
+        description: '<p>A chilling classic of the medium.</p>',
+        imageUrl: null,
+      };
+    },
+    resolve: async () => null,
+  };
+  const { base, close } = await startServer({ coverLookup: fakeLookup });
+  t.after(close);
+
+  const list = await json(await fetch(`${base}/api/comics?q=sandman`));
+  const id = list.data[0].id;
+
+  const first = await json(await fetch(`${base}/api/comics/${id}/summary`));
+  assert.equal(first.summary, '“Master Race” — A chilling classic of the medium.');
+  assert.equal(first.source, 'comicvine');
+
+  // Cached on the record — no second Comic Vine lookup, and the record
+  // itself now carries the summary.
+  const second = await json(await fetch(`${base}/api/comics/${id}/summary`));
+  assert.equal(second.source, 'cached');
+  assert.equal(lookups, 1);
+  const rec = await json(await fetch(`${base}/api/comics/${id}`));
+  assert.equal(rec.summary, first.summary);
+
+  assert.equal((await fetch(`${base}/api/comics/nope/summary`)).status, 404);
+});
+
 test('meta endpoint lists options and ticker feed', async (t) => {
   const { base, close } = await startServer();
   t.after(close);

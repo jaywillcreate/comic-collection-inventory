@@ -60,6 +60,7 @@ export function serialize(row) {
     isKey: row.key_note !== '',
     creators: row.creators,
     image: row.image,
+    summary: row.summary || '',
     added: Number(row.added),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -241,6 +242,32 @@ export class ComicsService {
     if (!row) return null;
     const record = serialize(row);
     return { ...record, census: censusFor(record.grade) };
+  }
+
+  /**
+   * Issue synopsis for the record drawer. Fetched from Comic Vine on first
+   * request, then cached on the record — each book costs at most one lookup.
+   * Returns null for an unknown id; `summary` is null when no confident
+   * match or synopsis exists (the drawer simply omits the section).
+   */
+  async getSummary(id) {
+    const row = await this.db.get('SELECT * FROM comics WHERE id = ?', [id]);
+    if (!row) return null;
+    if (row.summary) return { id, summary: row.summary, source: 'cached' };
+    if (!this.coverLookup) return { id, summary: null, source: null };
+
+    const { buildSummary } = await import('./cover-lookup.js');
+    let details = null;
+    try {
+      details = await this.coverLookup.issueDetails(serialize(row));
+    } catch {
+      return { id, summary: null, source: null }; // rate-limited or unreachable
+    }
+    const summary = buildSummary(details);
+    if (!summary) return { id, summary: null, source: 'comicvine' };
+
+    await this.db.run('UPDATE comics SET summary = ? WHERE id = ?', [summary, id]);
+    return { id, summary, source: 'comicvine' };
   }
 
   /**
