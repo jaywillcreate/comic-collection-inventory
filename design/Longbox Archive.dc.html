@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="_ds/nocturne-d1f909a3-9b75-4c21-8a1b-f8fc06d6a09d/styles.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,100..900&display=swap">
+<script src="_ds/nocturne-d1f909a3-9b75-4c21-8a1b-f8fc06d6a09d/_ds_bundle.js"></script>
+<style>
+body{margin:0;background:var(--color-bg)}
+a{color:var(--color-accent);text-decoration:none}
+a:hover{color:var(--color-accent-400)}
+@keyframes lb-in{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
+@keyframes lb-fade{from{opacity:0}to{opacity:1}}
+@keyframes lb-rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@keyframes lb-wght{0%,100%{font-variation-settings:'wght' 340}50%{font-variation-settings:'wght' 780}}
+@keyframes lb-reveal{from{opacity:0;transform:translateY(0.22em) scaleY(.94);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
+@keyframes lb-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:radial-gradient(120% 60% at 12% -10%, #1e2136 0%, #161826 55%, #131522 100%);color:var(--color-text);font-family:var(--font-body)">
+
+<header style="position:sticky;top:0;z-index:40;background:color-mix(in srgb, #161826 84%, transparent);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--color-divider)">
+  <div style="max-width:1580px;margin:0 auto;padding:9px clamp(14px,3vw,34px);display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:10px;margin-right:auto">
+      <div style="width:24px;height:32px;border-radius:3px;background:linear-gradient(160deg,#968ae0,#423a6a 60%,#232532);box-shadow:inset 3px 0 0 rgba(0,0,0,.45), 0 0 0 1px #3f424d"></div>
+      <div style="display:flex;flex-direction:column;line-height:1">
+        <span style="font-family:var(--font-heading);font-weight:600;font-size:16px;letter-spacing:-0.01em">LONGBOX</span>
+        <span style="font-size:9px;letter-spacing:0.22em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 45%,transparent);margin-top:3px">Archive &amp; Index</span>
+      </div>
+    </div>
+
+    <label style="position:relative;flex:1 1 300px;max-width:520px;display:block">
+      <i class="ph ph-magnifying-glass" style="position:absolute;left:11px;top:50%;transform:translateY(-50%);font-size:15px;color:color-mix(in srgb,var(--color-text) 45%,transparent);pointer-events:none"></i>
+      <input class="input" type="search" placeholder="Search title, creator, character, key note…" style="padding-left:32px;height:38px" value="{{ q }}" onChange="{{ onQuery }}">
+    </label>
+
+    <div class="seg" role="tablist">
+      <label class="seg-opt"><input type="radio" name="lb-view" checked="{{ isCatalog }}" onChange="{{ goCatalog }}"><i class="ph ph-squares-four"></i>Catalog</label>
+      <label class="seg-opt"><input type="radio" name="lb-view" checked="{{ isAdmin }}" onChange="{{ goAdmin }}"><i class="ph ph-sliders-horizontal"></i>CMS</label>
+    </div>
+  </div>
+</header>
+
+<sc-if value="{{ isCatalog }}" hint-placeholder-val="{{ true }}">
+<main style="max-width:1580px;margin:0 auto;padding:0 clamp(14px,3vw,34px) 96px">
+
+  <section style="padding:clamp(26px,4.6vw,56px) 0 clamp(16px,2.6vw,26px)">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:clamp(14px,2vw,22px)">
+      <span style="font-size:10px;letter-spacing:0.26em;text-transform:uppercase;color:var(--color-accent)">Public index</span>
+      <span style="flex:1;height:1px;background:linear-gradient(to right,var(--color-divider),transparent)"></span>
+      <span style="font-size:10px;letter-spacing:0.26em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 38%,transparent)">Est. 1938 — present</span>
+    </div>
+
+    <h1 style="margin:0 0 clamp(16px,2.4vw,26px);font-size:clamp(52px,12.5vw,168px);line-height:0.8;letter-spacing:-0.055em;text-transform:uppercase;font-feature-settings:'ss01';display:flex;flex-direction:column">
+      <span style="font-variation-settings:'wght' 760;animation:lb-reveal .8s cubic-bezier(.2,.8,.25,1) both">Every</span>
+      <span style="display:flex;align-items:baseline;gap:0.14em;flex-wrap:wrap">
+        <span style="color:transparent;-webkit-text-stroke:1.4px var(--color-accent);font-variation-settings:'wght' 300;animation:lb-reveal .8s .1s cubic-bezier(.2,.8,.25,1) both">issue</span>
+        <span style="font-size:0.2em;letter-spacing:0.1em;font-variation-settings:'wght' 500;text-transform:none;color:color-mix(in srgb,var(--color-text) 45%,transparent);align-self:center">ever printed</span>
+      </span>
+      <span style="font-variation-settings:'wght' 760;animation:lb-reveal .8s .2s cubic-bezier(.2,.8,.25,1) both">indexed<span style="color:var(--color-accent);animation:lb-wght 5.5s 1.2s ease-in-out infinite">.</span></span>
+    </h1>
+
+    <div style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:clamp(18px,3vw,44px)">
+      <p class="text-muted" style="flex:1 1 320px;max-width:52ch;font-size:15px;text-wrap:pretty;margin:0">Grades, key appearances, creator credits and provenance for {{ totalLabel }} catalogued books. Filter the wall, or open a record for the full sheet.</p>
+      <div style="display:flex;flex-wrap:wrap;gap:clamp(16px,2.4vw,36px);align-items:flex-end">
+        <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <span style="font-family:var(--font-heading);font-size:clamp(28px,4.4vw,52px);line-height:0.82;letter-spacing:-0.05em;font-variation-settings:'wght' 620;font-variant-numeric:tabular-nums">{{ s.value }}</span>
+            <span style="font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 42%,transparent)">{{ s.label }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <div style="overflow:hidden;border-block:1px solid var(--color-divider);padding:9px 0;margin-bottom:clamp(20px,3vw,32px);mask-image:linear-gradient(to right,transparent,#000 6%,#000 94%,transparent)">
+    <div style="display:flex;width:max-content;animation:lb-marquee 42s linear infinite">
+      <sc-for list="{{ tickerLoop }}" as="t" hint-placeholder-count="12">
+        <span style="display:inline-flex;align-items:center;gap:22px;padding-right:22px;font-size:11px;letter-spacing:0.24em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 40%,transparent);white-space:nowrap">{{ t }}<span style="width:3px;height:3px;border-radius:50%;background:var(--color-accent)"></span></span>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:clamp(18px,2.4vw,36px);align-items:flex-start">
+
+    <aside style="flex:1 1 236px;min-width:224px;position:sticky;top:70px;display:flex;flex-direction:column;gap:20px">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px">
+        <h6 style="margin:0;font-size:20px;letter-spacing:-0.03em;text-transform:none;font-variation-settings:'wght' 620">Refine</h6>
+        <button class="btn btn-ghost" style="font-size:12px" onClick="{{ clearAll }}">Reset</button>
+      </div>
+
+      <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:9px 11px;border-radius:8px;border:1px solid var(--color-divider);transition:background .15s" style-hover="background:color-mix(in srgb,var(--color-accent) 10%, transparent)">
+        <input type="checkbox" checked="{{ keyOnly }}" onChange="{{ toggleKeyOnly }}" style="accent-color:#968ae0;width:15px;height:15px;margin:0">
+        <span style="font-size:13px;flex:1">Key issues only</span>
+        <i class="ph ph-flag-pennant" style="font-size:14px;color:var(--color-accent)"></i>
+      </label>
+
+      <sc-for list="{{ facetGroups }}" as="g" hint-placeholder-count="3">
+        <div style="display:flex;flex-direction:column;gap:2px">
+          <div style="font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 45%,transparent);margin-bottom:8px">{{ g.label }}</div>
+          <sc-for list="{{ g.options }}" as="o" hint-placeholder-count="4">
+            <button onClick="{{ o.toggle }}" style="display:flex;align-items:center;gap:9px;width:100%;text-align:left;background:transparent;border:0;padding:5px 7px;margin-left:-7px;border-radius:6px;cursor:pointer;color:inherit;font:inherit;font-size:13px;transition:background .14s,color .14s" style-hover="background:color-mix(in srgb,var(--color-text) 7%, transparent)">
+              <span style="width:13px;height:13px;flex:none;border-radius:3px;border:1px solid {{ o.mark }};background:{{ o.fill }};display:grid;place-items:center"></span>
+              <span style="flex:1;color:{{ o.tone }}">{{ o.label }}</span>
+              <span style="font-size:11px;color:color-mix(in srgb,var(--color-text) 38%,transparent);font-variant-numeric:tabular-nums">{{ o.count }}</span>
+            </button>
+          </sc-for>
+        </div>
+      </sc-for>
+
+      <div style="display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--color-divider);padding-top:16px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span style="font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 45%,transparent)">Ceiling</span>
+          <span style="font-size:12px;font-variant-numeric:tabular-nums;color:var(--color-accent)">{{ priceCapLabel }}</span>
+        </div>
+        <input type="range" min="0" max="100" step="1" value="{{ priceCap }}" onChange="{{ onPriceCap }}" style="width:100%;accent-color:#968ae0">
+      </div>
+    </aside>
+
+    <div style="flex:999 1 560px;min-width:0">
+
+      <div style="display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding-bottom:14px;border-bottom:1px solid var(--color-divider)">
+        <div style="margin-right:auto;font-size:13px" class="text-muted">{{ resultLabel }}</div>
+        <div class="seg">
+          <label class="seg-opt"><input type="radio" name="lb-layout" checked="{{ isWall }}" onChange="{{ setWall }}"><i class="ph ph-grid-nine"></i>Wall</label>
+          <label class="seg-opt"><input type="radio" name="lb-layout" checked="{{ isList }}" onChange="{{ setList }}"><i class="ph ph-rows"></i>Ledger</label>
+        </div>
+        <select class="input" style="width:auto;min-width:168px;height:34px" value="{{ sort }}" onChange="{{ onSort }}">
+          <option value="year-asc">Oldest first</option>
+          <option value="year-desc">Newest first</option>
+          <option value="value-desc">Highest value</option>
+          <option value="grade-desc">Highest grade</option>
+          <option value="title-asc">Title A–Z</option>
+          <option value="added-desc">Recently added</option>
+        </select>
+      </div>
+
+      <sc-if value="{{ hasChips }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-wrap:wrap;gap:7px;padding:14px 0 0">
+          <sc-for list="{{ chips }}" as="c" hint-placeholder-count="2">
+            <button class="tag tag-outline" onClick="{{ c.clear }}" style="cursor:pointer;background:transparent;gap:6px;font-family:inherit">{{ c.label }}<i class="ph ph-x" style="font-size:11px"></i></button>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isWall }}" hint-placeholder-val="{{ true }}">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(172px,1fr));gap:clamp(14px,1.6vw,24px);padding-top:22px">
+          <sc-for list="{{ results }}" as="c" hint-placeholder-count="10">
+            <button onClick="{{ c.open }}" style="display:flex;flex-direction:column;gap:10px;background:transparent;border:0;padding:0;text-align:left;cursor:pointer;color:inherit;font:inherit;transition:transform .26s cubic-bezier(.2,.7,.3,1)" style-hover="transform:translateY(-6px)">
+              <div style="position:relative;aspect-ratio:2/3;border-radius:8px;overflow:hidden;box-shadow:var(--shadow-sm);background:{{ c.cover }}">
+                <sc-if value="{{ c.hasImage }}" hint-placeholder-val="{{ false }}">
+                  <div role="img" style="position:absolute;inset:0;background-size:cover;background-position:center;background-image:{{ c.imageBg }}"></div>
+                </sc-if>
+                <sc-if value="{{ c.noImage }}" hint-placeholder-val="{{ true }}">
+                  <div style="position:absolute;inset:0;display:flex;flex-direction:column;padding:12px 11px;justify-content:space-between">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:6px">
+                      <span style="font-size:8px;letter-spacing:0.18em;text-transform:uppercase;opacity:.72;line-height:1.3">{{ c.publisher }}</span>
+                      <span style="font-size:8px;letter-spacing:0.14em;opacity:.55">{{ c.year }}</span>
+                    </div>
+                    <div style="font-family:var(--font-heading);font-size:20px;font-variation-settings:'wght' 780;line-height:0.9;letter-spacing:-0.045em;text-transform:uppercase;text-wrap:balance;text-shadow:0 1px 12px rgba(0,0,0,.5)">{{ c.series }}</div>
+                    <div style="display:flex;align-items:flex-end;gap:6px;padding-bottom:20px">
+                      <span style="font-family:var(--font-heading);font-size:46px;font-variation-settings:'wght' 300;line-height:0.72;letter-spacing:-0.07em;color:transparent;-webkit-text-stroke:1.1px rgba(233,233,237,.85)">{{ c.issueLabel }}</span>
+                      <span style="font-size:8px;letter-spacing:0.16em;text-transform:uppercase;opacity:.5;line-height:1.3;padding-bottom:3px">{{ c.genre }}</span>
+                    </div>
+                  </div>
+                  <div style="position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.10) 1px, transparent 1.1px);background-size:5px 5px;mix-blend-mode:soft-light;pointer-events:none"></div>
+                  <div style="position:absolute;left:0;top:0;bottom:0;width:7px;background:linear-gradient(90deg,rgba(0,0,0,.55),rgba(0,0,0,0));pointer-events:none"></div>
+                  <div style="position:absolute;left:-30%;top:38%;width:160%;height:34%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.07),transparent);transform:rotate(-18deg);pointer-events:none"></div>
+                </sc-if>
+                <sc-if value="{{ c.isKey }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute;right:8px;top:8px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,#161826 70%,transparent);border:1px solid var(--color-accent);backdrop-filter:blur(4px)">
+                    <i class="ph ph-flag-pennant" style="font-size:11px;color:var(--color-accent-300)"></i>
+                  </div>
+                </sc-if>
+                <div style="position:absolute;left:0;right:0;bottom:0;height:34%;background:linear-gradient(transparent,rgba(0,0,0,.5));pointer-events:none"></div>
+                <div style="position:absolute;right:8px;bottom:8px;white-space:nowrap;font-size:10px;font-variant-numeric:tabular-nums;letter-spacing:0.06em;color:var(--color-accent-200);background:color-mix(in srgb,#161826 62%,transparent);padding:1px 6px;border-radius:4px">{{ c.gradeLabel }}</div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:3px">
+                <div style="font-family:var(--font-heading);font-size:14px;font-variation-settings:'wght' 620;line-height:1.1;letter-spacing:-0.035em;text-transform:uppercase">{{ c.title }}</div>
+                <div style="font-size:11px;color:color-mix(in srgb,var(--color-text) 48%,transparent)">{{ c.subline }}</div>
+                <sc-if value="{{ c.showPrice }}" hint-placeholder-val="{{ true }}">
+                  <div style="font-size:12px;color:var(--color-accent-300);font-variant-numeric:tabular-nums;margin-top:1px">{{ c.priceLabel }}</div>
+                </sc-if>
+              </div>
+            </button>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isList }}" hint-placeholder-val="{{ false }}">
+        <div style="overflow-x:auto;padding-top:14px">
+          <table class="table" style="min-width:660px">
+            <thead><tr><th style="width:44px"></th><th>Issue</th><th>Publisher</th><th>Year</th><th>Genre</th><th>Grade</th><th style="text-align:right">Value</th></tr></thead>
+            <tbody>
+              <sc-for list="{{ results }}" as="c" hint-placeholder-count="8">
+                <tr onClick="{{ c.open }}" style="cursor:pointer">
+                  <td><div style="width:26px;height:38px;border-radius:3px;background:{{ c.cover }};box-shadow:inset 2px 0 0 rgba(0,0,0,.5)"></div></td>
+                  <td><div style="font-weight:500">{{ c.title }}</div><div style="font-size:11px;color:color-mix(in srgb,var(--color-text) 45%,transparent)">{{ c.keyLine }}</div></td>
+                  <td class="text-muted">{{ c.publisher }}</td>
+                  <td class="text-muted" style="font-variant-numeric:tabular-nums">{{ c.year }}</td>
+                  <td class="text-muted">{{ c.genre }}</td>
+                  <td style="font-variant-numeric:tabular-nums">{{ c.grade }}</td>
+                  <td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--color-accent-300)">{{ c.priceLabel }}</td>
+                </tr>
+              </sc-for>
+            </tbody>
+          </table>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:64px 20px 70px;text-align:center;border:1px dashed var(--color-divider);border-radius:14px;margin-top:22px">
+          <div style="font-family:var(--font-heading);font-size:clamp(44px,9vw,104px);line-height:0.82;letter-spacing:-0.06em;text-transform:uppercase;color:transparent;-webkit-text-stroke:1.2px color-mix(in srgb,var(--color-text) 26%,transparent)">Empty box</div>
+          <h4 style="margin:16px 0 6px">No books match that pull list</h4>
+          <p class="text-muted" style="font-size:13px;margin:0 0 14px">Loosen a filter or clear the search.</p>
+          <button class="btn btn-primary" onClick="{{ clearAll }}">Reset filters</button>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+</main>
+</sc-if>
+
+<sc-if value="{{ isAdmin }}" hint-placeholder-val="{{ false }}">
+<main style="max-width:1580px;margin:0 auto;padding:clamp(26px,4vw,48px) clamp(14px,3vw,34px) 96px">
+  <div style="display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px;margin-bottom:26px">
+    <div style="margin-right:auto">
+      <div style="font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:var(--color-accent);margin-bottom:10px">Connected CMS · writes to the live index</div>
+      <h2 style="margin:0 0 8px;font-size:clamp(38px,6.6vw,86px);line-height:0.8;letter-spacing:-0.055em;text-transform:uppercase;font-variation-settings:'wght' 720">Catalog<br><span style="color:transparent;-webkit-text-stroke:1.2px var(--color-accent);font-variation-settings:'wght' 300">management</span></h2>
+      <p class="text-muted" style="margin:0;font-size:14px">Accession new books, update cover scans, correct grades. Changes publish to the public wall immediately.</p>
+    </div>
+    <button class="btn btn-secondary" onClick="{{ resetData }}"><i class="ph ph-arrow-counter-clockwise"></i>Restore seed data</button>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:26px">
+    <sc-for list="{{ adminStats }}" as="s" hint-placeholder-count="4">
+      <div class="card elev-sm" style="gap:6px;padding:14px 15px">
+        <div style="display:flex;align-items:center;gap:8px"><i class="{{ s.icon }}" style="font-size:15px;color:var(--color-accent)"></i><span class="card-kicker" style="color:color-mix(in srgb,var(--color-text) 50%,transparent)">{{ s.label }}</span></div>
+        <div style="font-family:var(--font-heading);font-size:26px;letter-spacing:-0.025em;line-height:1">{{ s.value }}</div>
+        <div style="font-size:11px;color:color-mix(in srgb,var(--color-text) 42%,transparent)">{{ s.note }}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:clamp(18px,2.2vw,30px);align-items:flex-start">
+
+    <form onSubmit="{{ submit }}" style="flex:1 1 336px;min-width:300px;display:flex;flex-direction:column;gap:12px;background:var(--color-surface);border-radius:14px;padding:18px;box-shadow:var(--shadow-sm);position:sticky;top:70px">
+      <div style="display:flex;align-items:center;gap:9px">
+        <i class="ph ph-plus-circle" style="font-size:17px;color:var(--color-accent)"></i>
+        <h4 style="margin:0;margin-right:auto;font-size:22px;letter-spacing:-0.03em;font-variation-settings:'wght' 640">{{ formHeading }}</h4>
+      </div>
+
+      <div style="display:flex;gap:12px;align-items:flex-start">
+        <div style="width:74px;flex:none">
+          <div style="aspect-ratio:2/3;border-radius:6px;background:{{ previewCover }};box-shadow:inset 3px 0 0 rgba(0,0,0,.5), var(--shadow-sm);position:relative;overflow:hidden">
+            <sc-if value="{{ previewHasImage }}" hint-placeholder-val="{{ false }}">
+              <div role="img" style="position:absolute;inset:0;background-size:cover;background-position:center;background-image:{{ previewImageBg }}"></div>
+            </sc-if>
+            <div style="position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.10) 1px, transparent 1.1px);background-size:5px 5px;mix-blend-mode:soft-light"></div>
+          </div>
+          <div style="font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 40%,transparent);margin-top:6px;text-align:center">Preview</div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column;gap:10px;min-width:0">
+          <div class="field"><label>Series</label><input class="input" value="{{ f.series }}" onChange="{{ setSeries }}" placeholder="The Sandman"></div>
+          <div style="display:flex;gap:10px">
+            <div class="field" style="flex:1"><label>Issue</label><input class="input" value="{{ f.issue }}" onChange="{{ setIssue }}" placeholder="1"></div>
+            <div class="field" style="flex:1"><label>Year</label><input class="input" value="{{ f.year }}" onChange="{{ setYear }}" placeholder="1989"></div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div class="field" style="flex:1 1 140px"><label>Publisher</label><input class="input" value="{{ f.publisher }}" onChange="{{ setPublisher }}" list="lb-pubs" placeholder="Vertigo"></div>
+        <div class="field" style="flex:1 1 120px"><label>Genre</label>
+          <select class="input" value="{{ f.genre }}" onChange="{{ setGenre }}">
+            <sc-for list="{{ genreOptions }}" as="g" hint-placeholder-count="6"><option value="{{ g }}">{{ g }}</option></sc-for>
+          </select>
+        </div>
+      </div>
+
+      <div style="border:1px solid var(--color-divider);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <i class="ph ph-currency-dollar" style="font-size:14px;color:var(--color-accent)"></i>
+          <span style="font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 62%,transparent);margin-right:auto">Grade &amp; value</span>
+          <button class="btn btn-ghost" type="button" style="font-size:12px" onClick="{{ toggleCompSearch }}">{{ compSearchLabel }}</button>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <div class="field" style="flex:1 1 110px"><label>Grade (CGC)</label><input class="input" value="{{ f.grade }}" onChange="{{ setGrade }}" placeholder="9.4"></div>
+          <div class="field" style="flex:1 1 130px"><label>Market value (USD)</label><input class="input" value="{{ f.price }}" onChange="{{ setPrice }}" placeholder="480"></div>
+        </div>
+
+        <sc-if value="{{ compSearchOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:10px;animation:lb-rise .18s ease">
+            <div class="field"><label>Search sold comps</label>
+              <div style="display:flex;gap:6px">
+                <input class="input" value="{{ compQuery }}" onChange="{{ setCompQuery }}" placeholder="Series, issue, grade">
+                <button class="btn btn-secondary" type="button" title="Use record fields" onClick="{{ fillCompQuery }}"><i class="ph ph-arrow-u-down-left"></i></button>
+              </div>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <sc-for list="{{ compSources }}" as="s" hint-placeholder-count="3">
+                <a class="btn btn-secondary" style="font-size:12px" href="{{ s.url }}" target="_blank" rel="noopener"><i class="{{ s.icon }}"></i>{{ s.label }}</a>
+              </sc-for>
+            </div>
+            <div style="border:1px dashed var(--color-divider);border-radius:8px;padding:11px;display:flex;flex-direction:column;gap:8px">
+              <div style="font-size:11px;color:color-mix(in srgb,var(--color-text) 50%,transparent);line-height:1.45">Record what the comps sold for — the median becomes the suggested value.</div>
+              <div style="display:flex;gap:6px">
+                <input class="input" value="{{ compEntry }}" onChange="{{ setCompEntry }}" onKeyDown="{{ onCompKey }}" placeholder="e.g. 1,250">
+                <button class="btn btn-primary" type="button" onClick="{{ addComp }}"><i class="ph ph-plus"></i></button>
+              </div>
+            </div>
+            <sc-if value="{{ hasComps }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;flex-direction:column;gap:9px">
+                <div style="display:flex;flex-wrap:wrap;gap:6px">
+                  <sc-for list="{{ comps }}" as="c" hint-placeholder-count="3">
+                    <button class="tag tag-neutral" type="button" onClick="{{ c.remove }}" style="cursor:pointer;gap:6px;font-family:inherit;font-variant-numeric:tabular-nums;border:0">{{ c.label }}<i class="ph ph-x" style="font-size:10px;opacity:.6"></i></button>
+                  </sc-for>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+                  <div style="font-size:12px;color:color-mix(in srgb,var(--color-text) 55%,transparent)">Median of {{ compCount }} · <span style="color:var(--color-accent-300);font-variant-numeric:tabular-nums">{{ compMedian }}</span></div>
+                  <button class="btn btn-primary" type="button" style="font-size:12px;margin-left:auto" onClick="{{ applyComp }}"><i class="ph ph-check"></i>Use median</button>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+      </div>
+
+      <div class="field"><label>Creators</label><input class="input" value="{{ f.creators }}" onChange="{{ setCreators }}" placeholder="Gaiman &amp; Kieth"></div>
+      <div class="field"><label>Key note <span class="text-muted">— first appearance, milestone</span></label><textarea class="input" style="min-height:62px" value="{{ f.keyNote }}" onChange="{{ setKeyNote }}" placeholder="First appearance of Morpheus"></textarea></div>
+      <div style="border:1px solid var(--color-divider);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <i class="ph ph-globe-hemisphere-west" style="font-size:14px;color:var(--color-accent)"></i>
+          <span style="font-size:11px;letter-spacing:0.14em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 62%,transparent);margin-right:auto">Cover image</span>
+          <button class="btn btn-ghost" type="button" style="font-size:12px" onClick="{{ toggleCoverSearch }}">{{ coverSearchLabel }}</button>
+        </div>
+
+        <sc-if value="{{ coverSearchOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:10px;animation:lb-rise .18s ease">
+            <div class="field"><label>Search the web</label>
+              <div style="display:flex;gap:6px">
+                <input class="input" value="{{ coverQuery }}" onChange="{{ setCoverQuery }}" placeholder="Series, issue, publisher">
+                <button class="btn btn-secondary" type="button" title="Use series and issue" onClick="{{ fillCoverQuery }}"><i class="ph ph-arrow-u-down-left"></i></button>
+              </div>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">
+              <sc-for list="{{ coverSources }}" as="s" hint-placeholder-count="3">
+                <a class="btn btn-secondary" style="font-size:12px" href="{{ s.url }}" target="_blank" rel="noopener"><i class="{{ s.icon }}"></i>{{ s.label }}</a>
+              </sc-for>
+            </div>
+            <div onDrop="{{ onCoverDrop }}" onDragOver="{{ onCoverDragOver }}" style="border:1px dashed var(--color-divider);border-radius:8px;padding:11px;display:flex;flex-direction:column;gap:8px">
+              <div style="font-size:11px;color:color-mix(in srgb,var(--color-text) 50%,transparent);line-height:1.45">Drag an image straight off the results page, or paste its address below.</div>
+              <div style="display:flex;gap:6px">
+                <input class="input" value="{{ coverPaste }}" onChange="{{ setCoverPaste }}" onKeyDown="{{ onCoverPasteKey }}" placeholder="https://…image.jpg">
+                <button class="btn btn-primary" type="button" onClick="{{ addCandidate }}"><i class="ph ph-plus"></i></button>
+              </div>
+            </div>
+            <sc-if value="{{ hasCandidates }}" hint-placeholder-val="{{ false }}">
+              <div>
+                <div style="font-size:10px;letter-spacing:0.14em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 42%,transparent);margin-bottom:7px">Candidates</div>
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:7px">
+                  <sc-for list="{{ candidates }}" as="k" hint-placeholder-count="3">
+                    <button type="button" onClick="{{ k.pick }}" title="{{ k.url }}" style="padding:0;border:0;background:transparent;cursor:pointer;aspect-ratio:2/3;border-radius:5px;overflow:hidden;background-size:cover;background-position:center;background-color:var(--color-neutral-900);background-image:{{ k.bg }};box-shadow:{{ k.ring }}"></button>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <div class="field"><label>Cover scan URL <span class="text-muted">— blank uses the generated plate</span></label>
+          <div style="display:flex;gap:6px">
+            <input class="input" value="{{ f.image }}" onChange="{{ setImage }}" placeholder="https://…">
+            <button class="btn btn-secondary" type="button" title="Clear" onClick="{{ clearCover }}"><i class="ph ph-x"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap;padding-top:2px">
+        <button class="btn btn-primary" type="submit"><i class="ph ph-check"></i>{{ submitLabel }}</button>
+        <sc-if value="{{ editing }}" hint-placeholder-val="{{ false }}">
+          <button class="btn btn-secondary" type="button" onClick="{{ cancelEdit }}">Cancel</button>
+        </sc-if>
+        <span style="font-size:12px;color:var(--color-accent-300);margin-left:auto">{{ flash }}</span>
+      </div>
+    </form>
+
+    <div style="flex:999 1 540px;min-width:0">
+      <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px">
+        <h4 style="margin:0;margin-right:auto">Inventory</h4>
+        <input class="input" style="width:auto;min-width:180px;height:34px" placeholder="Filter inventory…" value="{{ adminQ }}" onChange="{{ onAdminQ }}">
+      </div>
+      <div style="overflow-x:auto">
+        <table class="table" style="min-width:700px">
+          <thead><tr><th style="width:40px"></th><th>Issue</th><th>Publisher</th><th>Year</th><th>Grade</th><th style="text-align:right">Value</th><th style="width:88px"></th></tr></thead>
+          <tbody>
+            <sc-for list="{{ inventory }}" as="r" hint-placeholder-count="8">
+              <tr>
+                <td><div style="width:24px;height:34px;border-radius:3px;background:{{ r.cover }};box-shadow:inset 2px 0 0 rgba(0,0,0,.5)"></div></td>
+                <td><div style="font-weight:500">{{ r.title }}</div><div style="font-size:11px;color:color-mix(in srgb,var(--color-text) 45%,transparent)">{{ r.keyLine }}</div></td>
+                <td class="text-muted">{{ r.publisher }}</td>
+                <td class="text-muted" style="font-variant-numeric:tabular-nums">{{ r.year }}</td>
+                <td style="font-variant-numeric:tabular-nums">{{ r.grade }}</td>
+                <td style="text-align:right;font-variant-numeric:tabular-nums;color:var(--color-accent-300)">{{ r.priceLabel }}</td>
+                <td>
+                  <div style="display:flex;gap:2px;justify-content:flex-end">
+                    <button class="btn btn-icon btn-ghost" title="Edit" onClick="{{ r.edit }}"><i class="ph ph-pencil-simple"></i></button>
+                    <button class="btn btn-icon btn-ghost" title="Delete" onClick="{{ r.remove }}"><i class="ph ph-trash"></i></button>
+                  </div>
+                </td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <datalist id="lb-pubs"><sc-for list="{{ publisherOptions }}" as="p" hint-placeholder-count="4"><option value="{{ p }}"></option></sc-for></datalist>
+</main>
+</sc-if>
+
+<sc-if value="{{ hasSelection }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ closeDetail }}" style="position:fixed;inset:0;z-index:60;background:color-mix(in srgb,#0c0d16 62%,transparent);backdrop-filter:blur(3px);animation:lb-fade .18s ease"></div>
+  <aside style="position:fixed;z-index:61;top:0;right:0;bottom:0;width:min(470px,100%);overflow-y:auto;background:var(--color-surface);box-shadow:var(--shadow-lg);animation:lb-in .26s cubic-bezier(.2,.7,.3,1);display:flex;flex-direction:column">
+    <div style="position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:10px;padding:12px 16px;background:color-mix(in srgb,#232532 90%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--color-divider)">
+      <span style="font-size:10px;letter-spacing:0.18em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 50%,transparent);margin-right:auto">Record {{ sel.ref }}</span>
+      <button class="btn btn-icon btn-secondary" onClick="{{ closeDetail }}"><i class="ph ph-x"></i></button>
+    </div>
+
+    <div style="padding:20px 20px 34px;display:flex;flex-direction:column;gap:18px">
+      <div style="display:flex;gap:16px;align-items:flex-start">
+        <div style="width:132px;flex:none;aspect-ratio:2/3;border-radius:8px;overflow:hidden;position:relative;box-shadow:var(--shadow-md);background:{{ sel.cover }}">
+          <sc-if value="{{ sel.hasImage }}" hint-placeholder-val="{{ false }}">
+            <div role="img" style="position:absolute;inset:0;background-size:cover;background-position:center;background-image:{{ sel.imageBg }}"></div>
+          </sc-if>
+          <div style="position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.10) 1px, transparent 1.1px);background-size:5px 5px;mix-blend-mode:soft-light"></div>
+          <div style="position:absolute;left:0;top:0;bottom:0;width:7px;background:linear-gradient(90deg,rgba(0,0,0,.55),rgba(0,0,0,0))"></div>
+        </div>
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px">
+          <div style="font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--color-accent)">{{ sel.publisher }} · {{ sel.era }}</div>
+          <h3 style="margin:0;font-size:clamp(24px,4.6vw,34px);letter-spacing:-0.045em;line-height:0.92;text-transform:uppercase;font-variation-settings:'wght' 700;text-wrap:balance">{{ sel.title }}</h3>
+          <div class="text-muted" style="font-size:13px">{{ sel.creators }}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:2px">
+            <span class="tag tag-neutral" style="white-space:nowrap">{{ sel.genre }}</span>
+            <span class="tag tag-accent" style="white-space:nowrap">{{ sel.gradeLabel }}</span>
+            <sc-if value="{{ sel.isKey }}" hint-placeholder-val="{{ false }}"><span class="tag tag-outline">Key</span></sc-if>
+          </div>
+        </div>
+      </div>
+
+      <sc-if value="{{ sel.isKey }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:13px 15px;border-radius:10px;background:color-mix(in srgb,var(--color-accent) 11%, transparent);border-left:2px solid var(--color-accent)">
+          <div style="font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:var(--color-accent-300);margin-bottom:5px">Key significance</div>
+          <div style="font-size:14px;line-height:1.5">{{ sel.keyNote }}</div>
+        </div>
+      </sc-if>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:1px;background:var(--color-divider);border-radius:10px;overflow:hidden">
+        <sc-for list="{{ sel.specs }}" as="s" hint-placeholder-count="6">
+          <div style="background:var(--color-surface);padding:11px 13px">
+            <div style="font-size:9px;letter-spacing:0.16em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 45%,transparent);margin-bottom:4px">{{ s.label }}</div>
+            <div style="font-size:14px;font-variant-numeric:tabular-nums">{{ s.value }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div>
+        <div style="font-size:10px;letter-spacing:0.16em;text-transform:uppercase;color:color-mix(in srgb,var(--color-text) 45%,transparent);margin-bottom:9px">Census by grade</div>
+        <div style="display:flex;align-items:flex-end;gap:4px;height:74px">
+          <sc-for list="{{ sel.census }}" as="b" hint-placeholder-count="8">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px">
+              <div style="width:100%;border-radius:3px 3px 0 0;background:{{ b.fill }};height:{{ b.h }}"></div>
+              <span style="font-size:9px;color:color-mix(in srgb,var(--color-text) 40%,transparent)">{{ b.label }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;padding-top:2px">
+        <button class="btn btn-primary" onClick="{{ editSelected }}"><i class="ph ph-pencil-simple"></i>Edit in CMS</button>
+        <button class="btn btn-secondary" onClick="{{ closeDetail }}">Back to wall</button>
+      </div>
+    </div>
+  </aside>
+</sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showPrices&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Catalog&quot;},&quot;initialView&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;catalog&quot;,&quot;admin&quot;],&quot;default&quot;:&quot;catalog&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Catalog&quot;}}">
+const SEED = [
+  ['Action Comics',1,'DC Comics',1938,'Superhero',3.0,3200000,'First appearance of Superman','Siegel & Shuster'],
+  ['Detective Comics',27,'DC Comics',1939,'Crime',4.5,2100000,'First appearance of Batman','Kane & Finger'],
+  ['Marvel Comics',1,'Timely',1939,'Superhero',5.5,480000,'First Human Torch and Sub-Mariner','Everett & Burgos'],
+  ['Captain America Comics',1,'Timely',1941,'War',6.0,915000,'First appearance of Captain America','Simon & Kirby'],
+  ['Wonder Woman',1,'DC Comics',1942,'Superhero',5.0,96000,'First solo Wonder Woman title','Marston & Peter'],
+  ['All Star Comics',8,'DC Comics',1941,'Superhero',4.0,410000,'First appearance of Wonder Woman','Marston & Peter'],
+  ['Showcase',4,'DC Comics',1956,'Sci-Fi',7.0,285000,'First Silver Age Flash','Kanigher & Infantino'],
+  ['Fantastic Four',1,'Marvel',1961,'Superhero',5.5,520000,'First Fantastic Four','Lee & Kirby'],
+  ['Amazing Fantasy',15,'Marvel',1962,'Superhero',6.5,1100000,'First appearance of Spider-Man','Lee & Ditko'],
+  ['The Incredible Hulk',1,'Marvel',1962,'Superhero',4.0,240000,'First appearance of the Hulk','Lee & Kirby'],
+  ['Tales of Suspense',39,'Marvel',1963,'Sci-Fi',5.0,170000,'First appearance of Iron Man','Lee & Heck'],
+  ['The X-Men',1,'Marvel',1963,'Superhero',6.0,195000,'First appearance of the X-Men','Lee & Kirby'],
+  ['The Avengers',4,'Marvel',1964,'Superhero',7.5,62000,'Captain America returns','Lee & Kirby'],
+  ['Green Lantern',76,'DC Comics',1971,'Social',8.0,4200,'','O\u2019Neil & Adams'],
+  ['The Amazing Spider-Man',129,'Marvel',1974,'Crime',8.5,9800,'First appearance of the Punisher','Conway & Andru'],
+  ['Giant-Size X-Men',1,'Marvel',1975,'Superhero',8.0,15500,'First Storm, Colossus and Nightcrawler','Wein & Cockrum'],
+  ['Star Wars',1,'Marvel',1977,'Sci-Fi',9.2,1450,'','Thomas & Chaykin'],
+  ['Cerebus',1,'Aardvark-Vanaheim',1977,'Indie',8.5,3400,'First appearance of Cerebus','Dave Sim'],
+  ['Teenage Mutant Ninja Turtles',1,'Mirage',1984,'Indie',9.0,42000,'First appearance of the Turtles','Eastman & Laird'],
+  ['Swamp Thing',37,'DC Comics',1985,'Horror',9.4,320,'First appearance of John Constantine','Moore & Bissette'],
+  ['Watchmen',1,'DC Comics',1986,'Superhero',9.6,210,'','Moore & Gibbons'],
+  ['The Sandman',1,'Vertigo',1989,'Fantasy',9.4,480,'First appearance of Morpheus','Gaiman & Kieth'],
+  ['Spawn',1,'Image',1992,'Horror',9.8,160,'First appearance of Spawn','Todd McFarlane'],
+  ['Preacher',1,'Vertigo',1995,'Crime',9.6,140,'','Ennis & Dillon'],
+  ['Y: The Last Man',1,'Vertigo',2002,'Sci-Fi',9.8,95,'','Vaughan & Guerra'],
+  ['The Walking Dead',1,'Image',2003,'Horror',9.8,3800,'First appearance of Rick Grimes','Kirkman & Moore'],
+  ['Saga',1,'Image',2012,'Fantasy',9.8,320,'First Alana and Marko','Vaughan & Staples'],
+  ['Monstress',1,'Image',2015,'Fantasy',9.9,60,'','Liu & Takeda'],
+  ['Bitter Root',1,'Image',2018,'Horror',9.8,45,'','Walker, Brown & Greene'],
+  ['Nubia and the Amazons',1,'DC Comics',2021,'Fantasy',9.8,30,'','Williams, Lawrence & Ibáñez']
+];
+
+const HUES = { 'DC Comics': 262, 'Marvel': 292, 'Timely': 232, 'Image': 318, 'Mirage': 196, 'Vertigo': 276, 'Aardvark-Vanaheim': 340 };
+const GENRES = ['Superhero','Crime','Horror','Sci-Fi','Fantasy','Indie','War','Social'];
+const KEY = 'longbox.archive.v1';
+
+function hueFor(pub) {
+  if (HUES[pub] != null) return HUES[pub];
+  let h = 0;
+  for (let i = 0; i < pub.length; i++) h = (h * 31 + pub.charCodeAt(i)) % 360;
+  return 190 + (h % 160);
+}
+function coverFor(pub, year) {
+  const h = hueFor(pub), t = Math.max(0, Math.min(1, (year - 1938) / 84));
+  const c = 0.135 - t * 0.045;
+  return 'linear-gradient(155deg, oklch(' + (0.44 - t * 0.06).toFixed(3) + ' ' + c.toFixed(3) + ' ' + h + ') 0%, oklch(0.27 ' + (c * 0.7).toFixed(3) + ' ' + (h + 16) + ') 58%, oklch(0.165 0.045 ' + (h + 28) + ') 100%)';
+}
+function eraFor(y) {
+  if (y < 1956) return 'Golden Age';
+  if (y < 1971) return 'Silver Age';
+  if (y < 1986) return 'Bronze Age';
+  if (y < 2000) return 'Modern Age';
+  return 'Contemporary';
+}
+const ERAS = ['Golden Age','Silver Age','Bronze Age','Modern Age','Contemporary'];
+
+function money(n) {
+  if (!n && n !== 0) return '—';
+  if (n >= 1000000) return '$' + (n / 1000000).toFixed(n >= 10000000 ? 0 : 1) + 'M';
+  if (n >= 1000) return '$' + Math.round(n / 1000) + 'K';
+  return '$' + n;
+}
+function exact(n) {
+  return '$' + Math.round(n || 0).toLocaleString('en-US');
+}
+function compQ(f) {
+  return [f.series, f.issue && '#' + f.issue, f.grade && 'CGC ' + f.grade].filter(Boolean).join(' ');
+}
+function median(list) {
+  if (!list.length) return 0;
+  const s = list.slice().sort((a, b) => a - b), m = Math.floor(s.length / 2);
+  return Math.round(s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2);
+}
+const emptyForm = () => ({ series: '', issue: '', publisher: '', year: '', genre: 'Superhero', grade: '', price: '', creators: '', keyNote: '', image: '' });
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const seeded = SEED.map((r, i) => ({
+      id: 'c' + i, series: r[0], issue: r[1], publisher: r[2], year: r[3],
+      genre: r[4], grade: r[5], price: r[6], keyNote: r[7], creators: r[8],
+      image: '', added: i
+    }));
+    this.state = {
+      view: props.initialView || 'catalog', comics: seeded, q: '', adminQ: '',
+      sort: 'value-desc', layout: 'wall', keyOnly: false, priceCap: 100,
+      pub: [], era: [], genre: [], selectedId: null,
+      form: emptyForm(), editingId: null, flash: '',
+      coverSearchOpen: false, coverQuery: '', coverPaste: '', candidates: [],
+      compSearchOpen: false, compQuery: '', compEntry: '', comps: []
+    };
+  }
+
+  addComp(raw) {
+    const n = parseFloat(String(raw).replace(/[^0-9.]/g, ''));
+    if (!n) return;
+    this.setState({ comps: this.state.comps.concat(n), compEntry: '' });
+  }
+
+  addCoverUrl(url) {
+    url = (url || '').trim();
+    if (!url) return;
+    const list = [url].concat(this.state.candidates.filter(u => u !== url)).slice(0, 12);
+    this.setState({
+      candidates: list, coverPaste: '',
+      form: Object.assign({}, this.state.form, { image: url })
+    });
+  }
+
+  componentDidMount() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw) {
+        const saved = JSON.parse(raw);
+        if (Array.isArray(saved) && saved.length) this.setState({ comics: saved });
+      }
+    } catch (e) {}
+  }
+
+  persist(comics) {
+    this.setState({ comics });
+    try { localStorage.setItem(KEY, JSON.stringify(comics)); } catch (e) {}
+  }
+
+  toggleFacet(group, value) {
+    const cur = this.state[group];
+    this.setState({ [group]: cur.includes(value) ? cur.filter(v => v !== value) : cur.concat(value) });
+  }
+
+  matchQuery(c, q) {
+    if (!q) return true;
+    const s = (c.series + ' #' + c.issue + ' ' + c.publisher + ' ' + c.genre + ' ' + c.creators + ' ' + c.keyNote + ' ' + c.year).toLowerCase();
+    return q.toLowerCase().split(/\s+/).every(t => s.includes(t));
+  }
+
+  capValue() {
+    const p = this.state.priceCap;
+    if (p >= 100) return Infinity;
+    return Math.round(Math.pow(10, 1 + (p / 100) * 5.6));
+  }
+
+  filtered(skip) {
+    const st = this.state, cap = this.capValue();
+    return st.comics.filter(c =>
+      this.matchQuery(c, st.q) &&
+      (skip === 'pub' || !st.pub.length || st.pub.includes(c.publisher)) &&
+      (skip === 'era' || !st.era.length || st.era.includes(eraFor(c.year))) &&
+      (skip === 'genre' || !st.genre.length || st.genre.includes(c.genre)) &&
+      (!st.keyOnly || !!c.keyNote) &&
+      (c.price <= cap)
+    );
+  }
+
+  decorate(c) {
+    const title = c.series + ' #' + c.issue;
+    return {
+      id: c.id, title: title, series: c.series, issueLabel: '#' + c.issue,
+      publisher: c.publisher, year: c.year, genre: c.genre, grade: c.grade,
+      gradeLabel: 'CGC ' + Number(c.grade).toFixed(1), priceLabel: money(c.price),
+      subline: c.publisher + ' · ' + c.year, cover: coverFor(c.publisher, c.year),
+      image: c.image, imageBg: c.image ? 'url("' + c.image + '")' : 'none', hasImage: !!c.image, noImage: !c.image,
+      isKey: !!c.keyNote, keyLine: c.keyNote || c.creators,
+      showPrice: this.props.showPrices !== false,
+      open: () => this.setState({ selectedId: c.id })
+    };
+  }
+
+  startEdit(c) {
+    this.setState({
+      view: 'admin', selectedId: null, editingId: c.id, flash: '',
+      form: {
+        series: c.series, issue: String(c.issue), publisher: c.publisher, year: String(c.year),
+        genre: c.genre, grade: String(c.grade), price: String(c.price),
+        creators: c.creators, keyNote: c.keyNote, image: c.image
+      }
+    });
+  }
+
+  submit(e) {
+    e.preventDefault();
+    const f = this.state.form;
+    if (!f.series.trim()) { this.setState({ flash: 'Series is required' }); return; }
+    const rec = {
+      series: f.series.trim(), issue: f.issue.trim() || '1', publisher: f.publisher.trim() || 'Independent',
+      year: parseInt(f.year, 10) || new Date().getFullYear(), genre: f.genre || 'Indie',
+      grade: parseFloat(f.grade) || 9.0, price: parseFloat(f.price) || 0,
+      creators: f.creators.trim(), keyNote: f.keyNote.trim(), image: f.image.trim()
+    };
+    let comics;
+    if (this.state.editingId) {
+      comics = this.state.comics.map(c => c.id === this.state.editingId ? Object.assign({}, c, rec) : c);
+    } else {
+      rec.id = 'u' + Date.now();
+      rec.added = Date.now();
+      comics = [rec].concat(this.state.comics);
+    }
+    this.persist(comics);
+    this.setState({ form: emptyForm(), editingId: null, flash: this.state.editingId ? 'Record updated' : 'Added to the index' });
+    clearTimeout(this._t);
+    this._t = setTimeout(() => this.setState({ flash: '' }), 2600);
+  }
+
+  renderVals() {
+    const st = this.state, self = this;
+    const set = k => e => this.setState({ form: Object.assign({}, this.state.form, { [k]: e.target.value }) });
+
+    const base = this.filtered();
+    const sorted = base.slice().sort((a, b) => {
+      switch (st.sort) {
+        case 'year-asc': return a.year - b.year;
+        case 'year-desc': return b.year - a.year;
+        case 'grade-desc': return b.grade - a.grade;
+        case 'title-asc': return (a.series + a.issue).localeCompare(b.series + b.issue);
+        case 'added-desc': return (b.added || 0) - (a.added || 0);
+        default: return b.price - a.price;
+      }
+    });
+
+    const countIn = (list, fn, v) => list.filter(c => fn(c) === v).length;
+    const groupOf = (key, label, values, fn) => ({
+      label: label,
+      options: values.map(v => {
+        const on = st[key].includes(v);
+        return {
+          label: v, count: countIn(this.filtered(key), fn, v), active: on,
+          mark: on ? 'var(--color-accent)' : 'color-mix(in srgb, var(--color-text) 28%, transparent)',
+          fill: on ? 'var(--color-accent)' : 'transparent',
+          tone: on ? 'var(--color-accent-200)' : 'inherit',
+          toggle: () => self.toggleFacet(key, v)
+        };
+      })
+    });
+
+    const pubs = Array.from(new Set(st.comics.map(c => c.publisher))).sort();
+    const genresPresent = GENRES.filter(g => st.comics.some(c => c.genre === g));
+
+    const chips = []
+      .concat(st.pub.map(v => ({ label: v, clear: () => self.toggleFacet('pub', v) })))
+      .concat(st.era.map(v => ({ label: v, clear: () => self.toggleFacet('era', v) })))
+      .concat(st.genre.map(v => ({ label: v, clear: () => self.toggleFacet('genre', v) })))
+      .concat(st.keyOnly ? [{ label: 'Key issues', clear: () => self.setState({ keyOnly: false }) }] : [])
+      .concat(st.q ? [{ label: '“' + st.q + '”', clear: () => self.setState({ q: '' }) }] : []);
+
+    const sel = st.comics.find(c => c.id === st.selectedId);
+    let selVals = null;
+    if (sel) {
+      const d = this.decorate(sel);
+      const census = [9.8, 9.6, 9.4, 9.2, 9.0, 8.5, 8.0, 6.0].map((g, i) => {
+        const dist = Math.abs(g - sel.grade);
+        const h = Math.max(8, Math.round(70 * Math.exp(-dist * dist * 1.1)));
+        return { label: g.toFixed(1), h: h + 'px', fill: dist < 0.05 ? 'var(--color-accent)' : 'var(--color-accent-800)' };
+      });
+      selVals = Object.assign({}, d, {
+        ref: 'LB-' + String(Math.abs(sel.id.split('').reduce((a, ch) => a * 7 + ch.charCodeAt(0), 11)) % 100000).padStart(5, '0'),
+        era: eraFor(sel.year), creators: sel.creators || 'Credits unrecorded',
+        keyNote: sel.keyNote, census: census,
+        specs: [
+          { label: 'Cover date', value: sel.year },
+          { label: 'Issue', value: '#' + sel.issue },
+          { label: 'Grade', value: 'CGC ' + Number(sel.grade).toFixed(1) },
+          { label: 'Market value', value: money(sel.price) },
+          { label: 'Era', value: eraFor(sel.year) },
+          { label: 'Genre', value: sel.genre }
+        ]
+      });
+    }
+
+    const aq = st.adminQ.toLowerCase();
+    const inventory = st.comics
+      .filter(c => !aq || (c.series + ' ' + c.publisher + ' ' + c.year).toLowerCase().includes(aq))
+      .slice(0, 40)
+      .map(c => Object.assign({}, this.decorate(c), {
+        edit: () => self.startEdit(c),
+        remove: () => self.persist(st.comics.filter(x => x.id !== c.id))
+      }));
+
+    const keyCount = st.comics.filter(c => c.keyNote).length;
+    const totalValue = st.comics.reduce((a, c) => a + (c.price || 0), 0);
+    const capV = this.capValue();
+
+    return {
+      isCatalog: st.view === 'catalog', isAdmin: st.view === 'admin',
+      goCatalog: () => this.setState({ view: 'catalog' }),
+      goAdmin: () => this.setState({ view: 'admin' }),
+      q: st.q, onQuery: e => this.setState({ q: e.target.value }),
+      sort: st.sort, onSort: e => this.setState({ sort: e.target.value }),
+      isWall: st.layout === 'wall', isList: st.layout === 'list',
+      setWall: () => this.setState({ layout: 'wall' }), setList: () => this.setState({ layout: 'list' }),
+      keyOnly: st.keyOnly, toggleKeyOnly: () => this.setState({ keyOnly: !st.keyOnly }),
+      priceCap: st.priceCap, onPriceCap: e => this.setState({ priceCap: Number(e.target.value) }),
+      priceCapLabel: capV === Infinity ? 'No cap' : 'up to ' + money(capV),
+      clearAll: () => this.setState({ pub: [], era: [], genre: [], keyOnly: false, q: '', priceCap: 100 }),
+      facetGroups: [
+        groupOf('pub', 'Publisher', pubs, c => c.publisher),
+        groupOf('era', 'Era', ERAS, c => eraFor(c.year)),
+        groupOf('genre', 'Genre', genresPresent, c => c.genre)
+      ],
+      chips: chips, hasChips: chips.length > 0,
+      results: sorted.map(c => this.decorate(c)),
+      isEmpty: sorted.length === 0,
+      resultLabel: sorted.length + (sorted.length === 1 ? ' book' : ' books') + ' of ' + st.comics.length,
+      totalLabel: st.comics.length.toLocaleString(),
+      tickerLoop: (() => {
+        const t = ERAS.concat(pubs).concat(['Key issues', 'CGC census', 'First appearances', 'Provenance']);
+        return t.concat(t);
+      })(),
+      stats: [
+        { value: st.comics.length.toLocaleString(), label: 'Records indexed' },
+        { value: keyCount, label: 'Key issues' },
+        { value: pubs.length, label: 'Publishers' },
+        { value: money(totalValue), label: 'Catalogued value' }
+      ],
+      adminStats: [
+        { icon: 'ph ph-books', label: 'Records', value: st.comics.length, note: 'live in the public index' },
+        { icon: 'ph ph-flag-pennant', label: 'Key issues', value: keyCount, note: 'flagged first appearances' },
+        { icon: 'ph ph-image-square', label: 'Missing scans', value: st.comics.filter(c => !c.image).length, note: 'using generated plates' },
+        { icon: 'ph ph-currency-dollar', label: 'Book value', value: money(totalValue), note: 'sum of market estimates' }
+      ],
+      f: st.form, flash: st.flash, editing: !!st.editingId,
+      formHeading: st.editingId ? 'Edit record' : 'Accession a book',
+      submitLabel: st.editingId ? 'Save changes' : 'Add to index',
+      cancelEdit: () => this.setState({ editingId: null, form: emptyForm(), flash: '' }),
+      previewCover: coverFor(st.form.publisher || 'Independent', parseInt(st.form.year, 10) || 2020),
+      previewHasImage: !!st.form.image,
+      previewImageBg: st.form.image ? 'url("' + st.form.image + '")' : 'none',
+      setSeries: set('series'), setIssue: set('issue'), setPublisher: set('publisher'),
+      setYear: set('year'), setGenre: set('genre'), setGrade: set('grade'),
+      setPrice: set('price'), setCreators: set('creators'), setKeyNote: set('keyNote'),
+      setImage: set('image'),
+      genreOptions: GENRES, publisherOptions: pubs,
+      coverSearchOpen: st.coverSearchOpen,
+      coverSearchLabel: st.coverSearchOpen ? 'Close search' : 'Find on the web',
+      toggleCoverSearch: () => this.setState({
+        coverSearchOpen: !st.coverSearchOpen,
+        coverQuery: st.coverQuery || [st.form.series, st.form.issue && '#' + st.form.issue, st.form.publisher, 'cover'].filter(Boolean).join(' ')
+      }),
+      coverQuery: st.coverQuery,
+      setCoverQuery: e => this.setState({ coverQuery: e.target.value }),
+      fillCoverQuery: () => this.setState({ coverQuery: [st.form.series, st.form.issue && '#' + st.form.issue, st.form.publisher, 'cover'].filter(Boolean).join(' ') }),
+      coverSources: (() => {
+        const qq = encodeURIComponent(st.coverQuery || 'comic book cover');
+        return [
+          { label: 'Image search', icon: 'ph ph-image-square', url: 'https://duckduckgo.com/?iax=images&ia=images&q=' + qq },
+          { label: 'Comic Vine', icon: 'ph ph-database', url: 'https://comicvine.gamespot.com/search/?i=&q=' + qq },
+          { label: 'GCD', icon: 'ph ph-archive', url: 'https://www.comics.org/searchNew/?q=' + qq }
+        ];
+      })(),
+      coverPaste: st.coverPaste,
+      setCoverPaste: e => this.setState({ coverPaste: e.target.value }),
+      onCoverPasteKey: e => { if (e.key === 'Enter') { e.preventDefault(); self.addCoverUrl(e.target.value); } },
+      addCandidate: () => self.addCoverUrl(st.coverPaste),
+      onCoverDragOver: e => { e.preventDefault(); },
+      onCoverDrop: e => {
+        e.preventDefault();
+        const dt = e.dataTransfer;
+        if (dt.files && dt.files.length) {
+          const r = new FileReader();
+          r.onload = () => self.addCoverUrl(r.result);
+          r.readAsDataURL(dt.files[0]);
+          return;
+        }
+        const txt = dt.getData('text/uri-list') || dt.getData('text/plain');
+        const m = txt && txt.match(/https?:\/\/\S+/);
+        if (m) self.addCoverUrl(m[0]);
+      },
+      candidates: st.candidates.map(u => ({
+        url: u, bg: 'url("' + u + '")',
+        ring: u === st.form.image ? '0 0 0 2px var(--color-accent)' : 'var(--shadow-sm)',
+        pick: () => this.setState({ form: Object.assign({}, this.state.form, { image: u }) })
+      })),
+      hasCandidates: st.candidates.length > 0,
+      clearCover: () => this.setState({ form: Object.assign({}, this.state.form, { image: '' }) }),
+      compSearchOpen: st.compSearchOpen,
+      compSearchLabel: st.compSearchOpen ? 'Close comps' : 'Look up value',
+      toggleCompSearch: () => this.setState({ compSearchOpen: !st.compSearchOpen, compQuery: st.compQuery || compQ(st.form) }),
+      compQuery: st.compQuery,
+      setCompQuery: e => this.setState({ compQuery: e.target.value }),
+      fillCompQuery: () => this.setState({ compQuery: compQ(st.form) }),
+      compSources: (() => {
+        const qq = encodeURIComponent(st.compQuery || 'comic book');
+        return [
+          { label: 'eBay sold', icon: 'ph ph-gavel', url: 'https://www.ebay.com/sch/i.html?LH_Sold=1&LH_Complete=1&_nkw=' + qq },
+          { label: 'GoCollect', icon: 'ph ph-chart-line-up', url: 'https://gocollect.com/search?q=' + qq },
+          { label: 'Heritage', icon: 'ph ph-bank', url: 'https://comics.ha.com/search-results.s?N=0&Ntt=' + qq }
+        ];
+      })(),
+      compEntry: st.compEntry,
+      setCompEntry: e => this.setState({ compEntry: e.target.value }),
+      onCompKey: e => { if (e.key === 'Enter') { e.preventDefault(); self.addComp(e.target.value); } },
+      addComp: () => self.addComp(st.compEntry),
+      comps: st.comps.map((v, i) => ({
+        label: exact(v),
+        remove: () => this.setState({ comps: st.comps.filter((_, j) => j !== i) })
+      })),
+      hasComps: st.comps.length > 0,
+      compCount: st.comps.length,
+      compMedian: exact(median(st.comps)),
+      applyComp: () => this.setState({ form: Object.assign({}, this.state.form, { price: String(median(st.comps)) }), flash: 'Value set from comps' }),
+      submit: e => this.submit(e),
+      adminQ: st.adminQ, onAdminQ: e => this.setState({ adminQ: e.target.value }),
+      inventory: inventory,
+      resetData: () => {
+        try { localStorage.removeItem(KEY); } catch (err) {}
+        this.setState({ comics: SEED.map((r, i) => ({ id: 'c' + i, series: r[0], issue: r[1], publisher: r[2], year: r[3], genre: r[4], grade: r[5], price: r[6], keyNote: r[7], creators: r[8], image: '', added: i })), flash: 'Seed data restored' });
+      },
+      hasSelection: !!sel, sel: selVals,
+      closeDetail: () => this.setState({ selectedId: null }),
+      editSelected: () => sel && self.startEdit(sel)
+    };
+  }
+}
+</script>
+</body>
+</html>

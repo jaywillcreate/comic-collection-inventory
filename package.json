@@ -1,0 +1,31 @@
+{
+  "name": "longbox-archive-api",
+  "version": "1.0.0",
+  "description": "Backend API for the Longbox Archive comic collection — public catalog search/facets plus connected CMS writes, per the Nocturne design handoff.",
+  "type": "module",
+  "main": "src/server.js",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "seed": "node src/db/seed-cli.js",
+    "test": "node --test \"tests/**/*.test.js\""
+  },
+  "keywords": [
+    "comics",
+    "collection",
+    "inventory",
+    "rest-api",
+    "longbox-archive"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "express-rate-limit": "^8.0.1",
+    "helmet": "^8.1.0",
+    "multer": "^2.0.1"
+  }
+}
