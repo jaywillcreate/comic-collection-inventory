@@ -126,7 +126,7 @@ export class CoverLookup {
 
     const issues = await this.api('/issues/', {
       filter: `volume:${vol.id},issue_number:${issueNum}`,
-      field_list: 'issue_number,image,name,deck,description,site_detail_url',
+      field_list: 'issue_number,image,name,deck,description,site_detail_url,cover_date',
       limit: '5',
     });
     if (!issues || !issues.length) return null;
@@ -135,6 +135,7 @@ export class CoverLookup {
       name: withImage.name || '',
       deck: withImage.deck || '',
       description: withImage.description || '',
+      coverDate: withImage.cover_date || '',
       siteUrl: withImage.site_detail_url || '',
       imageUrl: withImage.image
         ? withImage.image.super_url || withImage.image.medium_url || withImage.image.original_url

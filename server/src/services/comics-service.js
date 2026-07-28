@@ -61,6 +61,7 @@ export function serialize(row) {
     creators: row.creators,
     image: row.image,
     summary: row.summary || '',
+    coverDate: row.cover_date || '',
     priceSource: row.price_source || '',
     priceNote: row.price_note || '',
     added: Number(row.added),
@@ -267,10 +268,68 @@ export class ComicsService {
       return { id, summary: null, source: null }; // rate-limited or unreachable
     }
     const summary = buildSummary(details);
-    if (!summary) return { id, summary: null, source: 'comicvine' };
+    if (!summary && !details) return { id, summary: null, source: 'comicvine' };
 
-    await this.db.run('UPDATE comics SET summary = ? WHERE id = ?', [summary, id]);
-    return { id, summary, source: 'comicvine' };
+    // Enrich in one pass: synopsis, plus cover date / year / cover image
+    // when the record lacks them (all remain admin-overridable).
+    const sets = [];
+    const params = [];
+    if (summary) {
+      sets.push('summary = ?');
+      params.push(summary);
+    }
+    if (details?.coverDate && !row.cover_date) {
+      sets.push('cover_date = ?');
+      params.push(details.coverDate);
+      const cdYear = parseInt(details.coverDate, 10);
+      if (cdYear && Number(row.year) === 0) {
+        sets.push('year = ?');
+        params.push(cdYear);
+      }
+    }
+    if (details?.imageUrl && !row.image) {
+      sets.push('image = ?');
+      params.push(details.imageUrl);
+    }
+    if (sets.length) {
+      await this.db.run(
+        `UPDATE comics SET ${sets.join(', ')} WHERE id = ?`,
+        [...params, id]
+      );
+    }
+    return { id, summary: summary || null, source: 'comicvine' };
+  }
+
+  /** Site settings (title, tagline, logo) — a whitelisted key/value store. */
+  static SETTINGS_DEFAULTS = {
+    siteTitle: 'LONGBOX',
+    siteTagline: 'Archive & Index',
+    logoUrl: '',
+  };
+
+  async getSettings() {
+    const rows = await this.db.all('SELECT key, value FROM settings');
+    const stored = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+    return { ...ComicsService.SETTINGS_DEFAULTS, ...stored };
+  }
+
+  async saveSettings(body) {
+    if (typeof body !== 'object' || body === null) {
+      const err = new Error('Request body must be a JSON object');
+      err.status = 400;
+      throw err;
+    }
+    for (const key of Object.keys(ComicsService.SETTINGS_DEFAULTS)) {
+      if (!(key in body)) continue;
+      const value = String(body[key] ?? '').trim().slice(0, 300);
+      if (key === 'logoUrl' && value) this.validateImage(value);
+      await this.db.run(
+        `INSERT INTO settings (key, value) VALUES (?, ?)
+         ON CONFLICT (key) DO UPDATE SET value = excluded.value`,
+        [key, value]
+      );
+    }
+    return this.getSettings();
   }
 
   /**
@@ -357,6 +416,8 @@ export class ComicsService {
       keyNote: 'key_note',
       creators: 'creators',
       image: 'image',
+      summary: 'summary',
+      coverDate: 'cover_date',
     };
     const sets = [];
     const params = [];
@@ -493,6 +554,14 @@ export class ComicsService {
     if (has('keyNote') || applyDefaults) out.keyNote = str(body.keyNote).slice(0, 500);
     if (has('creators') || applyDefaults) out.creators = str(body.creators).slice(0, 300);
     if (has('image') || applyDefaults) out.image = this.validateImage(str(body.image));
+    if (has('summary') || applyDefaults) out.summary = str(body.summary).slice(0, 2000);
+    if (has('coverDate') || applyDefaults) {
+      const cd = str(body.coverDate);
+      out.coverDate = /^\d{4}(-\d{2})?(-\d{2})?$/.test(cd) ? cd : '';
+      // A valid cover date fills an unknown year unless the year was set explicitly
+      const cdYear = parseInt(out.coverDate, 10);
+      if (cdYear && !has('year') && (!out.year || out.year === 0)) out.year = cdYear;
+    }
 
     return out;
   }

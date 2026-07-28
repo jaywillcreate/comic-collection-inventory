@@ -360,6 +360,53 @@ test('record value endpoint', async (t) => {
   assert.equal(patched.priceNote, '');
 });
 
+test('site settings and dynamic-field overrides', async (t) => {
+  const { base, close } = await startServer();
+  t.after(close);
+
+  // Defaults, then a saved identity round-trips
+  let s = await json(await fetch(`${base}/api/settings`));
+  assert.equal(s.siteTitle, 'LONGBOX');
+  s = await json(
+    await fetch(`${base}/api/settings`, {
+      method: 'PUT',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ siteTitle: 'Williams Collection', siteTagline: 'Comic Vault' }),
+    })
+  );
+  assert.equal(s.siteTitle, 'Williams Collection');
+  s = await json(await fetch(`${base}/api/settings`));
+  assert.equal(s.siteTagline, 'Comic Vault');
+  assert.equal(s.logoUrl, '');
+
+  // Admin PATCH overrides dynamically-fetched fields; cover date fills year
+  const list = await json(await fetch(`${base}/api/comics?q=watchmen`));
+  const rec = await json(
+    await fetch(`${base}/api/comics/${list.data[0].id}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ summary: 'My own synopsis.', coverDate: '1986-09' }),
+    })
+  );
+  assert.equal(rec.summary, 'My own synopsis.');
+  assert.equal(rec.coverDate, '1986-09');
+  // Overridden summary is authoritative — the summary endpoint serves it as cached
+  const sum = await json(await fetch(`${base}/api/comics/${rec.id}/summary`));
+  assert.equal(sum.summary, 'My own synopsis.');
+  assert.equal(sum.source, 'cached');
+
+  // Cover date fills an unknown year on create
+  const created = await json(
+    await fetch(`${base}/api/comics`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ series: 'Dated Book', coverDate: '1992-10-01' }),
+    })
+  );
+  assert.equal(created.year, 1992);
+  assert.equal(created.era, 'Modern Age');
+});
+
 test('meta endpoint lists options and ticker feed', async (t) => {
   const { base, close } = await startServer();
   t.after(close);

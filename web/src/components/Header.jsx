@@ -1,7 +1,10 @@
 import { MagnifyingGlass, SquaresFour, SlidersHorizontal } from '@phosphor-icons/react';
 import { muted } from '../lib/cover.js';
 
-export default function Header({ view, setView, q, setQ }) {
+export default function Header({ view, setView, q, setQ, settings }) {
+  const title = settings?.siteTitle || 'LONGBOX';
+  const tagline = settings?.siteTagline || 'Archive & Index';
+  const logoUrl = settings?.logoUrl || '';
   return (
     <header
       style={{
@@ -26,15 +29,29 @@ export default function Header({ view, setView, q, setQ }) {
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginRight: 'auto' }}>
-          <div
-            style={{
-              width: 24,
-              height: 32,
-              borderRadius: 3,
-              background: 'linear-gradient(160deg,#968ae0,#423a6a 60%,#232532)',
-              boxShadow: 'inset 3px 0 0 rgba(0,0,0,.45), 0 0 0 1px #3f424d',
-            }}
-          />
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt=""
+              style={{
+                width: 24,
+                height: 32,
+                borderRadius: 3,
+                objectFit: 'cover',
+                boxShadow: '0 0 0 1px #3f424d',
+              }}
+            />
+          ) : (
+            <div
+              style={{
+                width: 24,
+                height: 32,
+                borderRadius: 3,
+                background: 'linear-gradient(160deg,#968ae0,#423a6a 60%,#232532)',
+                boxShadow: 'inset 3px 0 0 rgba(0,0,0,.45), 0 0 0 1px #3f424d',
+              }}
+            />
+          )}
           <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
             <span
               style={{
@@ -42,9 +59,10 @@ export default function Header({ view, setView, q, setQ }) {
                 fontWeight: 600,
                 fontSize: 16,
                 letterSpacing: '-0.01em',
+                textTransform: 'uppercase',
               }}
             >
-              LONGBOX
+              {title}
             </span>
             <span
               style={{
@@ -55,7 +73,7 @@ export default function Header({ view, setView, q, setQ }) {
                 marginTop: 3,
               }}
             >
-              Archive &amp; Index
+              {tagline}
             </span>
           </div>
         </div>

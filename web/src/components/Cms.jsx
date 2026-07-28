@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Archive,
   ArrowUDownLeft,
+  Storefront,
   Bank,
   Books,
   Check,
@@ -64,8 +65,21 @@ export default function Cms({
   onDelete,
   onShowMore,
   uploadCover,
+  settings,
+  onSaveSettings,
 }) {
   const [coverOpen, setCoverOpen] = useState(false);
+  const [siteDraft, setSiteDraft] = useState({ siteTitle: '', siteTagline: '', logoUrl: '' });
+  const [siteOpen, setSiteOpen] = useState(false);
+  useEffect(() => {
+    if (settings) {
+      setSiteDraft({
+        siteTitle: settings.siteTitle || '',
+        siteTagline: settings.siteTagline || '',
+        logoUrl: settings.logoUrl || '',
+      });
+    }
+  }, [settings]);
   const [coverQuery, setCoverQuery] = useState('');
   const [coverPaste, setCoverPaste] = useState('');
   const [candidates, setCandidates] = useState([]);
@@ -175,7 +189,68 @@ export default function Cms({
             public wall immediately.
           </p>
         </div>
+        <button className="btn btn-secondary" onClick={() => setSiteOpen(!siteOpen)}>
+          <Storefront size={14} />
+          {siteOpen ? 'Close site settings' : 'Site settings'}
+        </button>
       </div>
+
+      {siteOpen && (
+        <div
+          className="lb-rise-in"
+          style={{
+            ...moduleBox,
+            background: 'var(--color-surface)',
+            boxShadow: 'var(--shadow-sm)',
+            border: 0,
+            borderRadius: 14,
+            padding: 18,
+            marginBottom: 26,
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Storefront size={14} style={{ color: 'var(--color-accent)' }} />
+            <span style={sectionLabel}>Site identity</span>
+          </div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <div className="field" style={{ flex: '1 1 160px' }}>
+              <label>Site title</label>
+              <input
+                className="input"
+                value={siteDraft.siteTitle}
+                onChange={(e) => setSiteDraft({ ...siteDraft, siteTitle: e.target.value })}
+                placeholder="LONGBOX"
+              />
+            </div>
+            <div className="field" style={{ flex: '1 1 160px' }}>
+              <label>Tagline</label>
+              <input
+                className="input"
+                value={siteDraft.siteTagline}
+                onChange={(e) => setSiteDraft({ ...siteDraft, siteTagline: e.target.value })}
+                placeholder="Archive & Index"
+              />
+            </div>
+            <div className="field" style={{ flex: '2 1 240px' }}>
+              <label>
+                Logo image URL <span className="text-muted">— blank uses the spine mark</span>
+              </label>
+              <input
+                className="input"
+                value={siteDraft.logoUrl}
+                onChange={(e) => setSiteDraft({ ...siteDraft, logoUrl: e.target.value })}
+                placeholder="https://…logo.png"
+              />
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: 9 }}>
+            <button className="btn btn-primary" onClick={() => onSaveSettings(siteDraft)}>
+              <Check size={14} />
+              Save site settings
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Stat cards */}
       <div
@@ -310,6 +385,17 @@ export default function Cms({
                     placeholder="1989"
                   />
                 </div>
+              </div>
+              <div className="field">
+                <label>
+                  Cover date <span className="text-muted">— YYYY-MM, auto-filled from the web</span>
+                </label>
+                <input
+                  className="input"
+                  value={form.coverDate}
+                  onChange={(e) => setField('coverDate', e.target.value)}
+                  placeholder="1989-01"
+                />
               </div>
             </div>
           </div>
@@ -518,6 +604,18 @@ export default function Cms({
               value={form.keyNote}
               onChange={(e) => setField('keyNote', e.target.value)}
               placeholder="First appearance of Morpheus"
+            />
+          </div>
+          <div className="field">
+            <label>
+              Synopsis <span className="text-muted">— auto-filled from the web; edits stick</span>
+            </label>
+            <textarea
+              className="input"
+              style={{ minHeight: 62 }}
+              value={form.summary}
+              onChange={(e) => setField('summary', e.target.value)}
+              placeholder="Fetched from Comic Vine on first view — or write your own"
             />
           </div>
 

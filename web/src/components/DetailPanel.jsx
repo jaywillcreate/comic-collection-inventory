@@ -1,9 +1,42 @@
-import { PencilSimple, X } from '@phosphor-icons/react';
+import { useEffect } from 'react';
+import { CaretLeft, CaretRight, PencilSimple, X } from '@phosphor-icons/react';
 import { Halftone, Spine } from './CoverPlate.jsx';
 import { coverFor, money, muted } from '../lib/cover.js';
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** "1992-10-01" / "1992-10" / "1992" → "Oct 1992" / "1992". */
+function formatCoverDate(cd) {
+  const m = String(cd || '').match(/^(\d{4})(?:-(\d{2}))?/);
+  if (!m) return null;
+  const month = m[2] ? MONTHS[parseInt(m[2], 10) - 1] : null;
+  return month ? `${month} ${m[1]}` : m[1];
+}
+
 /** Record detail slide-over: backdrop + right-anchored panel (lb-in). */
-export default function DetailPanel({ sel, summary, valueLoading, onClose, onEdit }) {
+export default function DetailPanel({
+  sel,
+  summary,
+  valueLoading,
+  position,
+  onStep,
+  onClose,
+  onEdit,
+}) {
+  // Arrow keys page through the wall; Escape closes. (Hook runs before the
+  // early return, per the rules of hooks.)
+  useEffect(() => {
+    if (!sel) return undefined;
+    const onKey = (e) => {
+      if (e.target.closest?.('input, textarea, select')) return;
+      if (e.key === 'ArrowRight') onStep?.(1);
+      else if (e.key === 'ArrowLeft') onStep?.(-1);
+      else if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [sel, onStep, onClose]);
+
   if (!sel) return null;
   const showSynopsis =
     summary && (summary.state === 'loading' || (summary.state === 'done' && summary.text));
@@ -15,7 +48,7 @@ export default function DetailPanel({ sel, summary, valueLoading, onClose, onEdi
       : '—';
 
   const specs = [
-    { label: 'Cover date', value: sel.year > 0 ? sel.year : '—' },
+    { label: 'Cover date', value: formatCoverDate(sel.coverDate) || (sel.year > 0 ? sel.year : '—') },
     { label: 'Issue', value: '#' + sel.issue },
     { label: 'Grade', value: sel.grade > 0 ? 'CGC ' + Number(sel.grade).toFixed(1) : 'Ungraded' },
     { label: 'Market value', value: valueDisplay },
@@ -79,7 +112,38 @@ export default function DetailPanel({ sel, summary, valueLoading, onClose, onEdi
           >
             Record {sel.ref}
           </span>
-          <button className="btn btn-icon btn-secondary" onClick={onClose}>
+          {position && (
+            <>
+              <span
+                style={{
+                  fontSize: 10,
+                  letterSpacing: '0.08em',
+                  color: muted(42),
+                  fontVariantNumeric: 'tabular-nums',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {position.index.toLocaleString()} / {position.total.toLocaleString()}
+              </span>
+              <button
+                className="btn btn-icon btn-secondary"
+                onClick={() => onStep(-1)}
+                disabled={!position.hasPrev}
+                title="Previous book (←)"
+              >
+                <CaretLeft size={15} />
+              </button>
+              <button
+                className="btn btn-icon btn-secondary"
+                onClick={() => onStep(1)}
+                disabled={!position.hasNext}
+                title="Next book (→)"
+              >
+                <CaretRight size={15} />
+              </button>
+            </>
+          )}
+          <button className="btn btn-icon btn-secondary" onClick={onClose} title="Close (Esc)">
             <X size={16} />
           </button>
         </div>

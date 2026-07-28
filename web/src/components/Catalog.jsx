@@ -1,4 +1,5 @@
-import { FlagPennant, GridNine, Rows, X } from '@phosphor-icons/react';
+import { useRef } from 'react';
+import { CaretLeft, CaretRight, FlagPennant, GridNine, Rows, X } from '@phosphor-icons/react';
 import CoverPlate, { CoverSwatch } from './CoverPlate.jsx';
 import { money, muted, priceCapValue } from '../lib/cover.js';
 
@@ -19,10 +20,15 @@ export default function Catalog({
   setFilters,
   clearAll,
   openRecord,
-  loadMore,
-  loadingMore,
-  pageSize,
+  page,
+  totalPages,
+  onPage,
 }) {
+  const resultsTop = useRef(null);
+  const goToPage = (n) => {
+    onPage(n);
+    resultsTop.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
   const { q, pub, era, genre, keyOnly, priceCap, sort, layout } = filters;
   const set = (patch) => setFilters((f) => ({ ...f, ...patch }));
   const toggle = (group, value) =>
@@ -366,6 +372,7 @@ export default function Catalog({
 
         {/* Results */}
         <div style={{ flex: '999 1 560px', minWidth: 0 }}>
+          <div ref={resultsTop} style={{ scrollMarginTop: 70 }} />
           <div
             style={{
               display: 'flex',
@@ -545,64 +552,73 @@ export default function Catalog({
             </div>
           )}
 
-          {meta && data.length < meta.total && (
-            <div
+          {meta && totalPages > 1 && (
+            <nav
+              aria-label="Catalog pages"
               style={{
                 padding: '30px 0 6px',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: 11,
+                gap: 10,
               }}
             >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, flexWrap: 'wrap', justifyContent: 'center' }}>
+                <button
+                  className="btn btn-icon btn-secondary"
+                  onClick={() => goToPage(page - 1)}
+                  disabled={page <= 1}
+                  aria-label="Previous page"
+                >
+                  <CaretLeft size={14} />
+                </button>
+                {pageWindow(page, totalPages).map((p, i) =>
+                  p === '…' ? (
+                    <span key={`gap-${i}`} style={{ fontSize: 12, color: muted(38), padding: '0 3px' }}>
+                      …
+                    </span>
+                  ) : (
+                    <button
+                      key={p}
+                      onClick={() => goToPage(p)}
+                      aria-current={p === page ? 'page' : undefined}
+                      className="btn btn-icon"
+                      style={{
+                        fontSize: 13,
+                        fontVariantNumeric: 'tabular-nums',
+                        ...(p === page
+                          ? {
+                              color: 'var(--color-accent)',
+                              boxShadow: 'inset 0 0 0 1px var(--color-accent)',
+                            }
+                          : { border: '1px solid var(--color-divider)' }),
+                      }}
+                    >
+                      {p}
+                    </button>
+                  )
+                )}
+                <button
+                  className="btn btn-icon btn-secondary"
+                  onClick={() => goToPage(page + 1)}
+                  disabled={page >= totalPages}
+                  aria-label="Next page"
+                >
+                  <CaretRight size={14} />
+                </button>
+              </div>
               <div
                 style={{
                   fontSize: 10,
                   letterSpacing: '0.2em',
                   textTransform: 'uppercase',
-                  color: muted(45),
+                  color: muted(42),
                   fontVariantNumeric: 'tabular-nums',
                 }}
               >
-                Showing {data.length.toLocaleString()} of {meta.total.toLocaleString()} books
+                Page {page} of {totalPages} · {meta.total.toLocaleString()} books
               </div>
-              <div
-                style={{
-                  width: 'min(320px, 100%)',
-                  height: 2,
-                  borderRadius: 1,
-                  background: 'var(--color-divider)',
-                  overflow: 'hidden',
-                }}
-              >
-                <div
-                  style={{
-                    width: `${Math.round((data.length / meta.total) * 100)}%`,
-                    height: '100%',
-                    background: 'var(--color-accent)',
-                    transition: 'width .3s ease',
-                  }}
-                />
-              </div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-                <button
-                  className="btn btn-primary"
-                  onClick={() => loadMore(false)}
-                  disabled={loadingMore}
-                >
-                  {loadingMore
-                    ? 'Loading…'
-                    : `Show ${Math.min(pageSize, meta.total - data.length)} more`}
-                </button>
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => loadMore(true)}
-                  disabled={loadingMore}
-                >
-                  Show all {meta.total.toLocaleString()}
-                </button>
-              </div>
-            </div>
+            </nav>
           )}
 
           {meta && data.length === 0 && (
@@ -649,3 +665,16 @@ const eyebrow = (color) => ({
   textTransform: 'uppercase',
   color,
 });
+
+/** Windowed page list: 1 … around-current … last (all pages when few). */
+function pageWindow(page, total) {
+  if (total <= 9) return Array.from({ length: total }, (_, i) => i + 1);
+  const pages = new Set([1, 2, page - 1, page, page + 1, total - 1, total]);
+  const list = [...pages].filter((p) => p >= 1 && p <= total).sort((a, b) => a - b);
+  const out = [];
+  for (let i = 0; i < list.length; i++) {
+    if (i > 0 && list[i] - list[i - 1] > 1) out.push('…');
+    out.push(list[i]);
+  }
+  return out;
+}

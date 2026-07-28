@@ -18,6 +18,14 @@ export function metaRouter(service, db, writeGuard) {
     res.json(await service.meta());
   });
 
+  router.get('/settings', async (req, res) => {
+    res.json(await service.getSettings());
+  });
+
+  router.put('/settings', writeGuard, async (req, res) => {
+    res.json(await service.saveSettings(req.body));
+  });
+
   router.post('/admin/seed-reset', writeGuard, async (req, res) => {
     await resetToSeed(db);
     res.json({ ok: true, ...(await service.stats()) });

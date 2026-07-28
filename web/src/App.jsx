@@ -12,11 +12,13 @@ const emptyForm = () => ({
   character: '',
   variant: '',
   year: '',
+  coverDate: '',
   genre: 'Superhero',
   grade: '',
   price: '',
   creators: '',
   keyNote: '',
+  summary: '',
   image: '',
 });
 
@@ -37,11 +39,13 @@ const INV_PAGE = 40;
 export default function App() {
   const [view, setView] = useState('catalog');
 
-  // Catalog state — search, facets and sort resolve server-side; results
-  // accumulate page by page (the API caps any single request at 200).
+  // Catalog state — search, facets and sort resolve server-side;
+  // the wall/ledger shows one numbered page at a time.
   const [filters, setFilters] = useState(defaultFilters());
+  const [page, setPage] = useState(1);
   const [catalog, setCatalog] = useState(null);
-  const [loadingMore, setLoadingMore] = useState(false);
+  const pendingOpen = useRef(null); // 'first' | 'last' after a drawer page-cross
+  const [settings, setSettings] = useState(null);
 
   const [stats, setStats] = useState(null);
   const [meta, setMeta] = useState(null);
@@ -70,47 +74,74 @@ export default function App() {
   // Chrome data
   useEffect(() => {
     api.meta().then(setMeta).catch(console.error);
+    api.settings().then(setSettings).catch(console.error);
   }, []);
+  useEffect(() => {
+    if (settings?.siteTitle) {
+      document.title = `${settings.siteTitle} — ${settings.siteTagline || 'Archive & Index'}`;
+    }
+  }, [settings]);
   useEffect(() => {
     api.stats().then(setStats).catch(console.error);
   }, [refresh]);
 
-  // Catalog search — debounced so typing and the ceiling slider stay live.
   // Filter changes restart from page one.
+  useEffect(() => {
+    setPage(1);
+  }, [filters]);
+
+  // Catalog search — debounced so typing and the ceiling slider stay live.
   useEffect(() => {
     const t = setTimeout(() => {
       api
-        .search({ ...filters, limit: PAGE, offset: 0 })
-        .then(setCatalog)
+        .search({ ...filters, limit: PAGE, offset: (page - 1) * PAGE })
+        .then((res) => {
+          setCatalog(res);
+          // Drawer page-crossing: open the first/last record of the new page
+          if (pendingOpen.current && res.data.length) {
+            const rec =
+              pendingOpen.current === 'last'
+                ? res.data[res.data.length - 1]
+                : res.data[0];
+            setSelectedId(rec.id);
+          }
+          pendingOpen.current = null;
+        })
         .catch(console.error);
     }, 180);
     return () => clearTimeout(t);
-  }, [filters, refresh]);
+  }, [filters, page, refresh]);
 
-  // Append the next page (or every remaining page) to the wall/ledger.
-  const loadMore = async (all = false) => {
-    if (!catalog || loadingMore) return;
-    setLoadingMore(true);
-    try {
-      let { data, meta, facets } = catalog;
-      do {
-        const res = await api.search({
-          ...filters,
-          limit: all ? 200 : PAGE,
-          offset: data.length,
-        });
-        if (!res.data.length) break;
-        data = [...data, ...res.data];
-        meta = res.meta;
-        facets = res.facets;
-        setCatalog({ data, meta, facets });
-      } while (all && data.length < meta.total);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoadingMore(false);
+  const totalPages = catalog ? Math.max(1, Math.ceil(catalog.meta.total / PAGE)) : 1;
+
+  // Prev/next navigation from the record drawer, crossing pages when needed.
+  const drawerStep = (dir) => {
+    if (!catalog || !selectedId) return;
+    const idx = catalog.data.findIndex((r) => r.id === selectedId);
+    if (idx === -1) return;
+    const next = idx + dir;
+    if (next >= 0 && next < catalog.data.length) {
+      setSelectedId(catalog.data[next].id);
+    } else if (dir > 0 && page < totalPages) {
+      pendingOpen.current = 'first';
+      setPage(page + 1);
+    } else if (dir < 0 && page > 1) {
+      pendingOpen.current = 'last';
+      setPage(page - 1);
     }
   };
+  const drawerPosition = (() => {
+    if (!catalog || !selectedId) return null;
+    const idx = catalog.data.findIndex((r) => r.id === selectedId);
+    if (idx === -1) return null;
+    const globalIndex = (page - 1) * PAGE + idx + 1;
+    return {
+      index: globalIndex,
+      total: catalog.meta.total,
+      hasPrev: globalIndex > 1,
+      hasNext: globalIndex < catalog.meta.total,
+    };
+  })();
 
   // CMS inventory — most recent first, same accumulating pagination.
   useEffect(() => {
@@ -228,11 +259,13 @@ export default function App() {
       character: rec.character || '',
       variant: rec.variant || '',
       year: rec.year > 0 ? String(rec.year) : '',
+      coverDate: rec.coverDate || '',
       genre: rec.genre,
       grade: rec.grade > 0 ? String(rec.grade) : '',
       price: rec.price > 0 ? String(rec.price) : '',
       creators: rec.creators,
       keyNote: rec.keyNote,
+      summary: rec.summary || '',
       image: rec.image,
     });
   };
@@ -287,6 +320,7 @@ export default function App() {
         setView={setView}
         q={filters.q}
         setQ={(q) => setFilters((f) => ({ ...f, q }))}
+        settings={settings}
       />
 
       {view === 'catalog' && (
@@ -298,9 +332,9 @@ export default function App() {
           setFilters={setFilters}
           clearAll={clearAll}
           openRecord={setSelectedId}
-          loadMore={loadMore}
-          loadingMore={loadingMore}
-          pageSize={PAGE}
+          page={page}
+          totalPages={totalPages}
+          onPage={setPage}
         />
       )}
 
@@ -326,6 +360,15 @@ export default function App() {
           onDelete={onDelete}
           onShowMore={loadMoreInventory}
           uploadCover={api.uploadCover}
+          settings={settings}
+          onSaveSettings={async (patch) => {
+            try {
+              setSettings(await api.saveSettings(patch));
+              setFlash('Site settings saved');
+            } catch (err) {
+              setFlash(err.message);
+            }
+          }}
         />
       )}
 
@@ -350,6 +393,8 @@ export default function App() {
         sel={selected}
         summary={summary}
         valueLoading={valueLoading}
+        position={drawerPosition}
+        onStep={drawerStep}
         onClose={() => setSelectedId(null)}
         onEdit={startEdit}
       />

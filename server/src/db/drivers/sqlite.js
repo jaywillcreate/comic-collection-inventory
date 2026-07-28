@@ -20,9 +20,14 @@ CREATE TABLE IF NOT EXISTS comics (
   creators       TEXT NOT NULL DEFAULT '',
   image          TEXT NOT NULL DEFAULT '',
   summary        TEXT NOT NULL DEFAULT '',
+  cover_date     TEXT NOT NULL DEFAULT '',
   added          INTEGER NOT NULL,
   created_at     TEXT NOT NULL,
   updated_at     TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS settings (
+  key   TEXT PRIMARY KEY,
+  value TEXT NOT NULL DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS idx_comics_publisher ON comics(publisher);
 CREATE INDEX IF NOT EXISTS idx_comics_year      ON comics(year);
@@ -75,6 +80,9 @@ export async function createSqliteDriver(dbPath) {
       }
       if (!cols.has('price_note')) {
         db.exec("ALTER TABLE comics ADD COLUMN price_note TEXT NOT NULL DEFAULT ''");
+      }
+      if (!cols.has('cover_date')) {
+        db.exec("ALTER TABLE comics ADD COLUMN cover_date TEXT NOT NULL DEFAULT ''");
       }
     },
     async transaction(fn) {

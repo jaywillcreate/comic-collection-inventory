@@ -3,8 +3,8 @@ import { createSqliteDriver } from './drivers/sqlite.js';
 import { createPostgresDriver } from './drivers/postgres.js';
 
 export const INSERT_COLUMNS =
-  '(id, series, issue, issue_sort, publisher, character_name, variant, year, genre, grade, price, key_note, creators, image, added, created_at, updated_at)';
-export const INSERT_PLACEHOLDERS = '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
+  '(id, series, issue, issue_sort, publisher, character_name, variant, year, genre, grade, price, key_note, creators, image, cover_date, added, created_at, updated_at)';
+export const INSERT_PLACEHOLDERS = '(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)';
 
 const INSERT = `INSERT INTO comics ${INSERT_COLUMNS} VALUES ${INSERT_PLACEHOLDERS}`;
 
@@ -25,6 +25,7 @@ export function insertParams(rec) {
     rec.keyNote,
     rec.creators,
     rec.image,
+    rec.coverDate ?? '',
     rec.added,
     now,
     now,
