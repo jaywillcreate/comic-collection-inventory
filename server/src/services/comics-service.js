@@ -300,6 +300,122 @@ export class ComicsService {
     return { id, summary: summary || null, source: 'comicvine' };
   }
 
+  /**
+   * Acquisition suggestions: gaps in runs the collection already commits to.
+   * Two kinds — missing issues inside a mostly-complete run, and the missing
+   * #1 opener of a collected series (typically the run's key issue, so the
+   * strongest lever on the set's market value).
+   *
+   * Value estimates come from the eBay median engine, cached in
+   * suggestion_values (up to `enrich` fresh lookups per call so the request
+   * stays fast; repeat visits progressively fill the rest).
+   */
+  async getSuggestions({ enrich = 3 } = {}) {
+    const rows = await this.db.all(
+      'SELECT series, issue, publisher, character_name FROM comics'
+    );
+    const norm = (s) => s.toLowerCase().replace(/\s+/g, ' ').trim();
+
+    const groups = new Map();
+    for (const r of rows) {
+      const key = norm(r.series);
+      if (!groups.has(key)) {
+        groups.set(key, {
+          series: r.series,
+          publisher: r.publisher,
+          character: r.character_name || '',
+          owned: new Set(),
+        });
+      }
+      const g = groups.get(key);
+      if (!g.character && r.character_name) g.character = r.character_name;
+      const n = Number.parseFloat(r.issue);
+      if (Number.isFinite(n) && Number.isInteger(n)) g.owned.add(n);
+    }
+
+    const openers = [];
+    const gaps = [];
+    for (const g of groups.values()) {
+      const nums = [...g.owned].sort((a, b) => a - b);
+      if (nums.length < 2) continue; // one issue isn't a run
+      const min = nums[0];
+      const max = nums[nums.length - 1];
+      const base = { series: g.series, publisher: g.publisher, character: g.character };
+
+      if (!g.owned.has(1) && min > 1 && min <= 20) {
+        openers.push({
+          ...base,
+          issue: 1,
+          reason: `Series opener — you collect ${g.series} from #${min}`,
+          ownedCount: nums.length,
+        });
+      }
+      if (max - min <= 30) {
+        const missing = [];
+        for (let n = min + 1; n < max; n++) if (!g.owned.has(n)) missing.push(n);
+        if (missing.length && missing.length <= 6) {
+          for (const n of missing.slice(0, 3)) {
+            gaps.push({
+              ...base,
+              issue: n,
+              reason: `Completes your ${g.series} run (#${min}–#${max})`,
+              ownedCount: nums.length,
+            });
+          }
+        }
+      }
+    }
+    openers.sort((a, b) => b.ownedCount - a.ownedCount);
+    gaps.sort((a, b) => b.ownedCount - a.ownedCount);
+    const picked = [...openers, ...gaps].slice(0, 18);
+
+    let fresh = 0;
+    let pendingValues = 0;
+    const suggestions = [];
+    for (const s of picked) {
+      const skey = norm(s.series) + '|' + s.issue;
+      const cached = await this.db.get(
+        'SELECT price, note FROM suggestion_values WHERE skey = ?',
+        [skey]
+      );
+      if (cached) {
+        s.estPrice = Number(cached.price) || 0;
+        s.estNote = cached.note;
+      } else if (this.valueLookup && fresh < enrich) {
+        fresh++;
+        try {
+          const est = await this.valueLookup.estimate({
+            series: s.series,
+            issue: String(s.issue),
+            grade: 0,
+          });
+          s.estPrice = est ? est.value : 0;
+          s.estNote = est
+            ? `Est. — median of ${est.sampleSize} eBay listings`
+            : 'No confident listing sample';
+          await this.db.run(
+            `INSERT INTO suggestion_values (skey, price, note, checked_at) VALUES (?, ?, ?, ?)
+             ON CONFLICT (skey) DO UPDATE SET price = excluded.price, note = excluded.note, checked_at = excluded.checked_at`,
+            [skey, s.estPrice, s.estNote, new Date().toISOString()]
+          );
+        } catch (err) {
+          console.error(`Suggestion value lookup failed for ${s.series} #${s.issue}:`, err.message);
+          pendingValues++;
+        }
+      } else {
+        pendingValues++;
+      }
+      const q = encodeURIComponent(`${s.series} #${s.issue} comic`);
+      s.ebayUrl = `https://www.ebay.com/sch/i.html?_nkw=${q}`;
+      s.midtownUrl = `https://www.midtowncomics.com/search?q=${encodeURIComponent(
+        `${s.series} ${s.issue}`
+      )}`;
+      delete s.ownedCount;
+      suggestions.push(s);
+    }
+    return { suggestions, pendingValues };
+  }
+
   /** Site settings (title, tagline, logo) — a whitelisted key/value store. */
   static SETTINGS_DEFAULTS = {
     siteTitle: 'LONGBOX',

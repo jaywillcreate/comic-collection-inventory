@@ -22,6 +22,10 @@ export function metaRouter(service, db, writeGuard) {
     res.json(await service.getSettings());
   });
 
+  router.get('/suggestions', async (req, res) => {
+    res.json(await service.getSuggestions());
+  });
+
   router.put('/settings', writeGuard, async (req, res) => {
     res.json(await service.saveSettings(req.body));
   });

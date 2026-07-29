@@ -73,6 +73,7 @@ export const api = {
   stats: () => http('/api/stats'),
   meta: () => http('/api/meta'),
   settings: () => http('/api/settings'),
+  suggestions: () => http('/api/suggestions'),
   saveSettings: (body) => http('/api/settings', { method: 'PUT', body }),
   /** No-op authenticated call — succeeds iff the current admin key is valid. */
   verifyAdminKey: () => http('/api/settings', { method: 'PUT', body: {} }),

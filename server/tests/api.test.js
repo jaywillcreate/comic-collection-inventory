@@ -407,6 +407,52 @@ test('site settings and dynamic-field overrides', async (t) => {
   assert.equal(created.era, 'Modern Age');
 });
 
+test('acquisition suggestions', async (t) => {
+  let lookups = 0;
+  const fakeValueLookup = {
+    estimate: async () => {
+      lookups++;
+      return { value: 275, sampleSize: 8 };
+    },
+  };
+  const { base, close } = await startServer({ valueLookup: fakeValueLookup });
+  t.after(close);
+
+  // A run with an internal gap, and a run missing its #1 opener
+  const records = [
+    { series: 'Spawn', issue: '1', publisher: 'Image' },
+    { series: 'Spawn', issue: '2', publisher: 'Image' },
+    { series: 'Spawn', issue: '4', publisher: 'Image' },
+    { series: 'Spawn', issue: '5', publisher: 'Image' },
+    { series: 'Saga', issue: '2', publisher: 'Image', character: 'Alana' },
+    { series: 'Saga', issue: '3', publisher: 'Image' },
+    { series: 'Lone Book', issue: '7', publisher: 'Indie Press' }, // not a run
+  ];
+  await fetch(`${base}/api/admin/import`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ records, replaceAll: true }),
+  });
+
+  const body = await json(await fetch(`${base}/api/suggestions`));
+  const keys = body.suggestions.map((s) => `${s.series} #${s.issue}`);
+  assert.ok(keys.includes('Spawn #3'), 'gap fill suggested');
+  assert.ok(keys.includes('Saga #1'), 'series opener suggested');
+  assert.ok(!keys.some((k) => k.startsWith('Lone Book')), 'single issues are not runs');
+
+  const saga = body.suggestions.find((s) => s.series === 'Saga');
+  assert.match(saga.reason, /Series opener/);
+  assert.equal(saga.estPrice, 275);
+  assert.match(saga.estNote, /median of 8 eBay listings/);
+  assert.match(saga.ebayUrl, /ebay\.com/);
+  assert.match(saga.midtownUrl, /midtowncomics\.com/);
+
+  // Estimates are cached — a second request adds no new lookups
+  const before = lookups;
+  await json(await fetch(`${base}/api/suggestions`));
+  assert.equal(lookups, before);
+});
+
 test('meta endpoint lists options and ticker feed', async (t) => {
   const { base, close } = await startServer();
   t.after(close);

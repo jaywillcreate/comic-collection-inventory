@@ -29,6 +29,12 @@ CREATE TABLE IF NOT EXISTS settings (
   key   TEXT PRIMARY KEY,
   value TEXT NOT NULL DEFAULT ''
 );
+CREATE TABLE IF NOT EXISTS suggestion_values (
+  skey       TEXT PRIMARY KEY,
+  price      REAL NOT NULL DEFAULT 0,
+  note       TEXT NOT NULL DEFAULT '',
+  checked_at TEXT NOT NULL DEFAULT ''
+);
 CREATE INDEX IF NOT EXISTS idx_comics_publisher ON comics(publisher);
 CREATE INDEX IF NOT EXISTS idx_comics_year      ON comics(year);
 CREATE INDEX IF NOT EXISTS idx_comics_genre     ON comics(genre);

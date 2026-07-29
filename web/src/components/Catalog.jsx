@@ -1,6 +1,7 @@
 import { useRef } from 'react';
 import { CaretLeft, CaretRight, FlagPennant, GridNine, Rows, X } from '@phosphor-icons/react';
 import CoverPlate, { CoverSwatch } from './CoverPlate.jsx';
+import Suggestions from './Suggestions.jsx';
 import { money, muted, priceCapValue } from '../lib/cover.js';
 
 const SORT_OPTIONS = [
@@ -655,6 +656,8 @@ export default function Catalog({
           )}
         </div>
       </div>
+
+      <Suggestions />
     </main>
   );
 }
