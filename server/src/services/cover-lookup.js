@@ -34,10 +34,9 @@ export function similarity(a, b) {
   return (inter / Math.max(A.size, B.size)) * 0.7 + (inter / Math.min(A.size, B.size)) * 0.3;
 }
 
-/** Score a Comic Vine volume against a record; exported for tests. */
-export function scoreVolume(rec, vol) {
-  const prefix = rec.series.split(':')[0];
-  let score = Math.max(similarity(rec.series, vol.name), similarity(prefix, vol.name));
+/** Score a volume against any of several candidate readings of the title. */
+function scoreVolumeAgainst(rec, vol, candidates) {
+  let score = Math.max(...candidates.map((c) => similarity(c, vol.name)));
 
   const volPub = normalize(vol.publisher?.name || '');
   const recPub = normalize(rec.publisher || '');
@@ -51,6 +50,36 @@ export function scoreVolume(rec, vol) {
     if (issueNum > vol.count_of_issues) score -= 0.25; // volume can't contain it
   }
   return score;
+}
+
+/**
+ * Candidate readings of a collection title: the full text, the part before
+ * a colon, the part after it ("She-devil with a sword: Red Sonja" → "Red
+ * Sonja"), and the record's character name.
+ */
+export function titleCandidates(rec) {
+  const list = [rec.series];
+  const ix = rec.series.indexOf(':');
+  if (ix > 0) {
+    list.push(rec.series.slice(0, ix));
+    list.push(rec.series.slice(ix + 1));
+  }
+  if (rec.character) list.push(rec.character);
+  const seen = new Set();
+  const out = [];
+  for (const c of list) {
+    const n = normalize(c);
+    if (n && !seen.has(n)) {
+      seen.add(n);
+      out.push(c.trim());
+    }
+  }
+  return out;
+}
+
+/** Score a Comic Vine volume against a record; exported for tests. */
+export function scoreVolume(rec, vol) {
+  return scoreVolumeAgainst(rec, vol, [rec.series, rec.series.split(':')[0]]);
 }
 
 export function pickBestVolume(rec, volumes) {
@@ -70,8 +99,8 @@ export class CoverLookup {
   constructor(apiKey, { fetchImpl = fetch, cache = new Map() } = {}) {
     this.apiKey = apiKey;
     this.fetch = fetchImpl;
-    /** normalized series+publisher → volume (or null for known misses) */
-    this.volumeCache = cache;
+    /** 'q|<normalized query>' → slim volume list (shared across records) */
+    this.searchCache = cache;
   }
 
   async api(path, params = {}) {
@@ -93,24 +122,45 @@ export class CoverLookup {
     return body.results;
   }
 
-  cacheKey(rec) {
-    return normalize(rec.series) + '|' + normalize(rec.publisher);
-  }
+  async searchVolumes(query) {
+    const key = 'q|' + normalize(query);
+    if (this.searchCache.has(key)) return this.searchCache.get(key);
 
-  async findVolume(rec) {
-    const key = this.cacheKey(rec);
-    if (this.volumeCache.has(key)) return this.volumeCache.get(key);
-
-    const query = rec.series.split(':')[0].trim() || rec.series;
     const results = await this.api('/search/', {
       resources: 'volume',
       query,
       limit: '10',
       field_list: 'id,name,publisher,count_of_issues,start_year',
     });
-    const best = pickBestVolume(rec, results);
-    this.volumeCache.set(key, best);
-    return best;
+    const slim = (results || []).map((v) => ({
+      id: v.id,
+      name: v.name,
+      publisher: v.publisher,
+      count_of_issues: v.count_of_issues,
+    }));
+    this.searchCache.set(key, slim);
+    return slim;
+  }
+
+  /**
+   * Rank confident volume candidates across every reading of the title.
+   * Returns up to three, best first — the issue lookup falls through them
+   * (reprint volumes often hold the issue numbers the original doesn't).
+   */
+  async rankVolumes(rec) {
+    const candidates = titleCandidates(rec);
+    const pool = new Map();
+    for (const q of candidates) {
+      for (const v of await this.searchVolumes(q)) {
+        if (!pool.has(v.id)) pool.set(v.id, v);
+      }
+    }
+    return [...pool.values()]
+      .map((v) => ({ v, s: scoreVolumeAgainst(rec, v, candidates) }))
+      .filter((x) => x.s >= MATCH_THRESHOLD)
+      .sort((a, b) => b.s - a.s)
+      .slice(0, 3)
+      .map((x) => x.v);
   }
 
   /**
@@ -121,26 +171,26 @@ export class CoverLookup {
     const issueNum = Number.parseFloat(rec.issue);
     if (!Number.isFinite(issueNum)) return null;
 
-    const vol = await this.findVolume(rec);
-    if (!vol) return null;
-
-    const issues = await this.api('/issues/', {
-      filter: `volume:${vol.id},issue_number:${issueNum}`,
-      field_list: 'issue_number,image,name,deck,description,site_detail_url,cover_date',
-      limit: '5',
-    });
-    if (!issues || !issues.length) return null;
-    const withImage = issues.find((i) => i.image) || issues[0];
-    return {
-      name: withImage.name || '',
-      deck: withImage.deck || '',
-      description: withImage.description || '',
-      coverDate: withImage.cover_date || '',
-      siteUrl: withImage.site_detail_url || '',
-      imageUrl: withImage.image
-        ? withImage.image.super_url || withImage.image.medium_url || withImage.image.original_url
-        : null,
-    };
+    for (const vol of await this.rankVolumes(rec)) {
+      const issues = await this.api('/issues/', {
+        filter: `volume:${vol.id},issue_number:${issueNum}`,
+        field_list: 'issue_number,image,name,deck,description,site_detail_url,cover_date',
+        limit: '5',
+      });
+      if (!issues || !issues.length) continue;
+      const withImage = issues.find((i) => i.image) || issues[0];
+      return {
+        name: withImage.name || '',
+        deck: withImage.deck || '',
+        description: withImage.description || '',
+        coverDate: withImage.cover_date || '',
+        siteUrl: withImage.site_detail_url || '',
+        imageUrl: withImage.image
+          ? withImage.image.super_url || withImage.image.medium_url || withImage.image.original_url
+          : null,
+      };
+    }
+    return null;
   }
 
   /** Resolve just the cover image URL for {series, issue, publisher}. */

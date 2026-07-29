@@ -7,6 +7,7 @@ import {
   normalize,
   pickBestVolume,
   similarity,
+  titleCandidates,
 } from '../src/services/cover-lookup.js';
 
 test('normalize strips punctuation, stopwords and apostrophes', () => {
@@ -63,6 +64,59 @@ test('buildSummary prefixes the story title and truncates at a sentence', () => 
   assert.match(s, /\.$/); // ends on a sentence boundary
   assert.equal(buildSummary(null), '');
   assert.equal(buildSummary({ name: '', deck: '', description: '' }), '');
+});
+
+test('titleCandidates tries full, prefix, suffix and character readings', () => {
+  const cands = titleCandidates({
+    series: 'She-devil with a sword: Red Sonja',
+    character: 'Red Sonja',
+  });
+  assert.deepEqual(cands, [
+    'She-devil with a sword: Red Sonja',
+    'She-devil with a sword',
+    'Red Sonja',
+  ]);
+});
+
+test('issueDetails falls through to a volume that actually holds the issue', async () => {
+  // The "original" volume outranks the reprint but has no issue #1 —
+  // the reprint volume should be tried next and win.
+  const fetchImpl = async (url) => {
+    const u = new URL(url);
+    if (u.pathname.endsWith('/search/')) {
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          error: 'OK',
+          results: [
+            { id: 1, name: 'The Vault of Horror', publisher: { name: 'EC' }, count_of_issues: 29 },
+            { id: 2, name: 'The Vault of Horror', publisher: { name: 'Gladstone' }, count_of_issues: 6 },
+          ],
+        }),
+      };
+    }
+    const filter = u.searchParams.get('filter');
+    if (filter.includes('volume:1,')) {
+      return { ok: true, status: 200, json: async () => ({ error: 'OK', results: [] }) };
+    }
+    return {
+      ok: true,
+      status: 200,
+      json: async () => ({
+        error: 'OK',
+        results: [{ issue_number: '1', image: { super_url: 'https://cv.example/voh-reprint-1.jpg' } }],
+      }),
+    };
+  };
+  const lookup = new CoverLookup('test-key', { fetchImpl });
+  const details = await lookup.issueDetails({
+    series: 'The Vault of Horror',
+    issue: '1',
+    publisher: 'EC Comics',
+    character: 'Tales from the Crypt',
+  });
+  assert.equal(details.imageUrl, 'https://cv.example/voh-reprint-1.jpg');
 });
 
 test('CoverLookup.resolve walks search → issues and returns the image URL', async () => {
