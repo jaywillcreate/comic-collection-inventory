@@ -4,12 +4,38 @@
  * deployment, and VITE_ADMIN_KEY when the backend has ADMIN_API_KEY set.
  */
 const BASE = import.meta.env.VITE_API_BASE || '';
-const ADMIN_KEY = import.meta.env.VITE_ADMIN_KEY || '';
+const BUILD_KEY = import.meta.env.VITE_ADMIN_KEY || '';
+const KEY_STORAGE = 'longbox.adminKey';
+
+/** Admin key: one stored on this device wins over the build-time key. */
+export function getAdminKey() {
+  try {
+    return localStorage.getItem(KEY_STORAGE) || BUILD_KEY;
+  } catch {
+    return BUILD_KEY;
+  }
+}
+
+export function setAdminKey(key) {
+  try {
+    if (key) localStorage.setItem(KEY_STORAGE, key);
+    else localStorage.removeItem(KEY_STORAGE);
+  } catch {}
+}
+
+export function hasStoredAdminKey() {
+  try {
+    return !!localStorage.getItem(KEY_STORAGE);
+  } catch {
+    return false;
+  }
+}
 
 async function http(path, { method = 'GET', body, form } = {}) {
   const headers = {};
   if (body) headers['content-type'] = 'application/json';
-  if (ADMIN_KEY && method !== 'GET') headers['x-api-key'] = ADMIN_KEY;
+  const key = getAdminKey();
+  if (key && method !== 'GET') headers['x-api-key'] = key;
   const res = await fetch(BASE + path, {
     method,
     headers,
@@ -48,6 +74,8 @@ export const api = {
   meta: () => http('/api/meta'),
   settings: () => http('/api/settings'),
   saveSettings: (body) => http('/api/settings', { method: 'PUT', body }),
+  /** No-op authenticated call — succeeds iff the current admin key is valid. */
+  verifyAdminKey: () => http('/api/settings', { method: 'PUT', body: {} }),
   seedReset: () => http('/api/admin/seed-reset', { method: 'POST' }),
   uploadCover: (file) => {
     const form = new FormData();

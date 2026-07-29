@@ -66,9 +66,12 @@ export default function App() {
   const flashTimer = useRef(null);
 
   const setFlash = useCallback((msg) => {
+    if (/api key/i.test(msg)) {
+      msg = 'Invalid or missing API key — unlock in Site settings → Admin access';
+    }
     setFlashText(msg);
     clearTimeout(flashTimer.current);
-    if (msg) flashTimer.current = setTimeout(() => setFlashText(''), 2600);
+    if (msg) flashTimer.current = setTimeout(() => setFlashText(''), 5000);
   }, []);
 
   // Chrome data

@@ -21,6 +21,7 @@ import {
 } from '@phosphor-icons/react';
 import { Halftone, CoverSwatch } from './CoverPlate.jsx';
 import { compQ, coverFor, coverQ, exact, median, money, muted } from '../lib/cover.js';
+import { api, getAdminKey, hasStoredAdminKey, setAdminKey } from '../api.js';
 
 const sectionLabel = {
   fontSize: 11,
@@ -71,6 +72,29 @@ export default function Cms({
   const [coverOpen, setCoverOpen] = useState(false);
   const [siteDraft, setSiteDraft] = useState({ siteTitle: '', siteTagline: '', logoUrl: '' });
   const [siteOpen, setSiteOpen] = useState(false);
+  const [keyDraft, setKeyDraft] = useState('');
+  const [keyStatus, setKeyStatus] = useState(
+    hasStoredAdminKey() ? 'stored' : getAdminKey() ? 'build' : 'none'
+  );
+  const [keyMsg, setKeyMsg] = useState('');
+
+  const verifyAndStoreKey = async () => {
+    const key = keyDraft.trim();
+    if (!key) return;
+    const previous = hasStoredAdminKey() ? getAdminKey() : null;
+    setAdminKey(key);
+    try {
+      await api.verifyAdminKey();
+      setKeyStatus('stored');
+      setKeyDraft('');
+      setKeyMsg('Key verified — stored on this device.');
+    } catch {
+      if (previous) setAdminKey(previous);
+      else setAdminKey('');
+      setKeyStatus(previous ? 'stored' : getAdminKey() ? 'build' : 'none');
+      setKeyMsg('That key was rejected by the server.');
+    }
+  };
   useEffect(() => {
     if (settings) {
       setSiteDraft({
@@ -248,6 +272,62 @@ export default function Cms({
               <Check size={14} />
               Save site settings
             </button>
+          </div>
+
+          <div
+            style={{
+              borderTop: '1px solid var(--color-divider)',
+              paddingTop: 12,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 8,
+            }}
+          >
+            <span style={sectionLabel}>Admin access</span>
+            <div style={{ fontSize: 12, color: muted(50), lineHeight: 1.5 }}>
+              {keyStatus === 'stored'
+                ? 'Unlocked with a key stored on this device.'
+                : keyStatus === 'build'
+                  ? 'Using the key baked into this build. Storing it here survives rebuilds and key rotations.'
+                  : 'Locked — enter the admin API key to enable saving from this browser.'}
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <input
+                className="input"
+                type="password"
+                style={{ flex: '1 1 200px' }}
+                value={keyDraft}
+                onChange={(e) => setKeyDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    verifyAndStoreKey();
+                  }
+                }}
+                placeholder="Admin API key"
+                autoComplete="off"
+              />
+              <button className="btn btn-primary" type="button" onClick={verifyAndStoreKey}>
+                <Check size={14} />
+                Verify &amp; store
+              </button>
+              {keyStatus === 'stored' && (
+                <button
+                  className="btn btn-secondary"
+                  type="button"
+                  onClick={() => {
+                    setAdminKey('');
+                    setKeyStatus(getAdminKey() ? 'build' : 'none');
+                    setKeyMsg('Stored key removed from this device.');
+                  }}
+                >
+                  Forget key
+                </button>
+              )}
+            </div>
+            {keyMsg && (
+              <span style={{ fontSize: 12, color: 'var(--color-accent-300)' }}>{keyMsg}</span>
+            )}
           </div>
         </div>
       )}
