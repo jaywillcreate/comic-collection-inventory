@@ -354,7 +354,8 @@ export class ComicsService {
     let est = null;
     try {
       est = await this.valueLookup.estimate(serialize(row));
-    } catch {
+    } catch (err) {
+      console.error(`Value lookup failed for ${row.series} #${row.issue}:`, err.message);
       return { id, price: 0, priceSource: '', priceNote: '', source: null };
     }
     if (!est) return { id, price: 0, priceSource: '', priceNote: '', source: 'ebay' };
