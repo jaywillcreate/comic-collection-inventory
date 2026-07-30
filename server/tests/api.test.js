@@ -409,13 +409,30 @@ test('site settings and dynamic-field overrides', async (t) => {
 
 test('acquisition suggestions', async (t) => {
   let lookups = 0;
+  let coverLookups = 0;
   const fakeValueLookup = {
     estimate: async () => {
       lookups++;
       return { value: 275, sampleSize: 8 };
     },
   };
-  const { base, close } = await startServer({ valueLookup: fakeValueLookup });
+  const fakeCoverLookup = {
+    issueDetails: async () => {
+      coverLookups++;
+      return {
+        name: '',
+        deck: 'A wanted key issue.',
+        description: '',
+        coverDate: '1992-05-01',
+        imageUrl: 'https://cv.example/prospect.jpg',
+      };
+    },
+    resolve: async () => null,
+  };
+  const { base, close } = await startServer({
+    valueLookup: fakeValueLookup,
+    coverLookup: fakeCoverLookup,
+  });
   t.after(close);
 
   // A run with an internal gap, and a run missing its #1 opener
@@ -447,10 +464,18 @@ test('acquisition suggestions', async (t) => {
   assert.match(saga.ebayUrl, /ebay\.com/);
   assert.match(saga.midtownUrl, /midtowncomics\.com/);
 
-  // Estimates are cached — a second request adds no new lookups
-  const before = lookups;
-  await json(await fetch(`${base}/api/suggestions`));
-  assert.equal(lookups, before);
+  // Cover art, synopsis and cover date are enriched from Comic Vine
+  assert.equal(saga.image, 'https://cv.example/prospect.jpg');
+  assert.equal(saga.summary, 'A wanted key issue.');
+  assert.equal(saga.coverDate, '1992-05-01');
+
+  // Estimates and covers are cached — a second request adds no new lookups
+  const beforeValues = lookups;
+  const beforeCovers = coverLookups;
+  const again = await json(await fetch(`${base}/api/suggestions`));
+  assert.equal(lookups, beforeValues);
+  assert.equal(coverLookups, beforeCovers);
+  assert.equal(again.suggestions.find((s) => s.series === 'Saga').image, 'https://cv.example/prospect.jpg');
 });
 
 test('meta endpoint lists options and ticker feed', async (t) => {

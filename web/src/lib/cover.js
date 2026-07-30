@@ -78,3 +78,13 @@ export function priceCapValue(p) {
 }
 
 export const muted = (pct) => `color-mix(in srgb, var(--color-text) ${pct}%, transparent)`;
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** "1992-10-01" / "1992-10" / "1992" → "Oct 1992" / "1992"; null if unparseable. */
+export function formatCoverDate(cd) {
+  const m = String(cd || '').match(/^(\d{4})(?:-(\d{2}))?/);
+  if (!m) return null;
+  const month = m[2] ? MONTHS[parseInt(m[2], 10) - 1] : null;
+  return month ? `${month} ${m[1]}` : m[1];
+}

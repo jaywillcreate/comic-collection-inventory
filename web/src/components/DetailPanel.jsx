@@ -1,17 +1,7 @@
 import { useEffect } from 'react';
 import { CaretLeft, CaretRight, PencilSimple, X } from '@phosphor-icons/react';
 import { Halftone, Spine } from './CoverPlate.jsx';
-import { coverFor, money, muted } from '../lib/cover.js';
-
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-/** "1992-10-01" / "1992-10" / "1992" → "Oct 1992" / "1992". */
-function formatCoverDate(cd) {
-  const m = String(cd || '').match(/^(\d{4})(?:-(\d{2}))?/);
-  if (!m) return null;
-  const month = m[2] ? MONTHS[parseInt(m[2], 10) - 1] : null;
-  return month ? `${month} ${m[1]}` : m[1];
-}
+import { coverFor, formatCoverDate, money, muted } from '../lib/cover.js';
 
 /** Record detail slide-over: backdrop + right-anchored panel (lb-in). */
 export default function DetailPanel({

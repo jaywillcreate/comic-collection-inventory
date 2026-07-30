@@ -30,10 +30,14 @@ CREATE TABLE IF NOT EXISTS settings (
   value TEXT NOT NULL DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS suggestion_values (
-  skey       TEXT PRIMARY KEY,
-  price      REAL NOT NULL DEFAULT 0,
-  note       TEXT NOT NULL DEFAULT '',
-  checked_at TEXT NOT NULL DEFAULT ''
+  skey             TEXT PRIMARY KEY,
+  price            REAL NOT NULL DEFAULT 0,
+  note             TEXT NOT NULL DEFAULT '',
+  checked_at       TEXT NOT NULL DEFAULT '',
+  image            TEXT NOT NULL DEFAULT '',
+  summary          TEXT NOT NULL DEFAULT '',
+  cover_date       TEXT NOT NULL DEFAULT '',
+  cover_checked_at TEXT NOT NULL DEFAULT ''
 );
 CREATE INDEX IF NOT EXISTS idx_comics_publisher ON comics(publisher);
 CREATE INDEX IF NOT EXISTS idx_comics_year      ON comics(year);
@@ -89,6 +93,14 @@ export async function createSqliteDriver(dbPath) {
       }
       if (!cols.has('cover_date')) {
         db.exec("ALTER TABLE comics ADD COLUMN cover_date TEXT NOT NULL DEFAULT ''");
+      }
+      const sugCols = new Set(
+        db.prepare('PRAGMA table_info(suggestion_values)').all().map((c) => c.name)
+      );
+      for (const col of ['image', 'summary', 'cover_date', 'cover_checked_at']) {
+        if (!sugCols.has(col)) {
+          db.exec(`ALTER TABLE suggestion_values ADD COLUMN ${col} TEXT NOT NULL DEFAULT ''`);
+        }
       }
     },
     async transaction(fn) {

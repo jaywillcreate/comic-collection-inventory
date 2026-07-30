@@ -29,11 +29,19 @@ CREATE TABLE IF NOT EXISTS settings (
   value TEXT NOT NULL DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS suggestion_values (
-  skey       TEXT PRIMARY KEY,
-  price      DOUBLE PRECISION NOT NULL DEFAULT 0,
-  note       TEXT NOT NULL DEFAULT '',
-  checked_at TEXT NOT NULL DEFAULT ''
+  skey             TEXT PRIMARY KEY,
+  price            DOUBLE PRECISION NOT NULL DEFAULT 0,
+  note             TEXT NOT NULL DEFAULT '',
+  checked_at       TEXT NOT NULL DEFAULT '',
+  image            TEXT NOT NULL DEFAULT '',
+  summary          TEXT NOT NULL DEFAULT '',
+  cover_date       TEXT NOT NULL DEFAULT '',
+  cover_checked_at TEXT NOT NULL DEFAULT ''
 );
+ALTER TABLE suggestion_values ADD COLUMN IF NOT EXISTS image TEXT NOT NULL DEFAULT '';
+ALTER TABLE suggestion_values ADD COLUMN IF NOT EXISTS summary TEXT NOT NULL DEFAULT '';
+ALTER TABLE suggestion_values ADD COLUMN IF NOT EXISTS cover_date TEXT NOT NULL DEFAULT '';
+ALTER TABLE suggestion_values ADD COLUMN IF NOT EXISTS cover_checked_at TEXT NOT NULL DEFAULT '';
 ALTER TABLE comics ADD COLUMN IF NOT EXISTS character_name TEXT NOT NULL DEFAULT '';
 ALTER TABLE comics ADD COLUMN IF NOT EXISTS variant TEXT NOT NULL DEFAULT '';
 ALTER TABLE comics ADD COLUMN IF NOT EXISTS summary TEXT NOT NULL DEFAULT '';

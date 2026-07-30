@@ -310,7 +310,7 @@ export class ComicsService {
    * suggestion_values (up to `enrich` fresh lookups per call so the request
    * stays fast; repeat visits progressively fill the rest).
    */
-  async getSuggestions({ enrich = 3 } = {}) {
+  async getSuggestions({ enrichValues = 3, enrichCovers = 4 } = {}) {
     const rows = await this.db.all(
       'SELECT series, issue, publisher, character_name FROM comics'
     );
@@ -369,42 +369,87 @@ export class ComicsService {
     gaps.sort((a, b) => b.ownedCount - a.ownedCount);
     const picked = [...openers, ...gaps].slice(0, 18);
 
-    let fresh = 0;
+    let freshValues = 0;
+    let freshCovers = 0;
     let pendingValues = 0;
     const suggestions = [];
     for (const s of picked) {
       const skey = norm(s.series) + '|' + s.issue;
-      const cached = await this.db.get(
-        'SELECT price, note FROM suggestion_values WHERE skey = ?',
+      const row = (await this.db.get(
+        'SELECT * FROM suggestion_values WHERE skey = ?',
         [skey]
-      );
-      if (cached) {
-        s.estPrice = Number(cached.price) || 0;
-        s.estNote = cached.note;
-      } else if (this.valueLookup && fresh < enrich) {
-        fresh++;
+      )) || {
+        price: 0,
+        note: '',
+        checked_at: '',
+        image: '',
+        summary: '',
+        cover_date: '',
+        cover_checked_at: '',
+      };
+      let dirty = false;
+
+      // Cover art + synopsis + cover date from Comic Vine (once per prospect)
+      if (!row.cover_checked_at && this.coverLookup && freshCovers < enrichCovers) {
+        freshCovers++;
+        try {
+          const { buildSummary } = await import('./cover-lookup.js');
+          const details = await this.coverLookup.issueDetails({
+            series: s.series,
+            issue: String(s.issue),
+            publisher: s.publisher,
+            character: s.character,
+          });
+          row.image = details?.imageUrl || '';
+          row.summary = details ? buildSummary(details) : '';
+          row.cover_date = details?.coverDate || '';
+          row.cover_checked_at = new Date().toISOString();
+          dirty = true;
+        } catch (err) {
+          console.error(`Suggestion cover lookup failed for ${s.series} #${s.issue}:`, err.message);
+        }
+      }
+
+      // Market value from the eBay median engine (once per prospect)
+      if (!row.checked_at && this.valueLookup && freshValues < enrichValues) {
+        freshValues++;
         try {
           const est = await this.valueLookup.estimate({
             series: s.series,
             issue: String(s.issue),
             grade: 0,
           });
-          s.estPrice = est ? est.value : 0;
-          s.estNote = est
+          row.price = est ? est.value : 0;
+          row.note = est
             ? `Est. — median of ${est.sampleSize} eBay listings`
             : 'No confident listing sample';
-          await this.db.run(
-            `INSERT INTO suggestion_values (skey, price, note, checked_at) VALUES (?, ?, ?, ?)
-             ON CONFLICT (skey) DO UPDATE SET price = excluded.price, note = excluded.note, checked_at = excluded.checked_at`,
-            [skey, s.estPrice, s.estNote, new Date().toISOString()]
-          );
+          row.checked_at = new Date().toISOString();
+          dirty = true;
         } catch (err) {
           console.error(`Suggestion value lookup failed for ${s.series} #${s.issue}:`, err.message);
-          pendingValues++;
         }
-      } else {
-        pendingValues++;
       }
+
+      if (dirty) {
+        await this.db.run(
+          `INSERT INTO suggestion_values (skey, price, note, checked_at, image, summary, cover_date, cover_checked_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT (skey) DO UPDATE SET
+             price = excluded.price, note = excluded.note, checked_at = excluded.checked_at,
+             image = excluded.image, summary = excluded.summary,
+             cover_date = excluded.cover_date, cover_checked_at = excluded.cover_checked_at`,
+          [skey, row.price, row.note, row.checked_at, row.image, row.summary, row.cover_date, row.cover_checked_at]
+        );
+      }
+
+      s.estPrice = row.checked_at ? Number(row.price) || 0 : 0;
+      s.estNote = row.note || '';
+      s.valueChecked = !!row.checked_at;
+      if (!row.checked_at) pendingValues++;
+      s.image = row.image || '';
+      s.summary = row.summary || '';
+      s.coverDate = row.cover_date || '';
+
       const q = encodeURIComponent(`${s.series} #${s.issue} comic`);
       s.ebayUrl = `https://www.ebay.com/sch/i.html?_nkw=${q}`;
       s.midtownUrl = `https://www.midtowncomics.com/search?q=${encodeURIComponent(
